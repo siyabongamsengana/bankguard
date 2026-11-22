@@ -1,0 +1,18 @@
+
+# Maven generated files
+target/
+
+# Local SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# VS Code local settings
+.vscode/
+
+# Java compiled files
+*.class
+
+# System files
+.DS_Store
+Thumbs.db
