@@ -1,129 +1,166 @@
 # BankGuard 🛡️
 ### IT Governance, Risk and Compliance Management System
 
-BankGuard is a Java-based IT Governance, Risk and Compliance (GRC) project designed to explore how financial institutions can identify, assess, document and manage technology-related risks.
+BankGuard is a Java-based IT Governance, Risk and Compliance (GRC) project focused on identifying, assessing, recording and managing technology risks within the banking sector.
 
-The project is based on a fictional organisation called **Ubuntu Digital Bank**.
+The system is being developed around **Ubuntu Digital Bank**, a fictional financial institution.
 
-As a Business Systems student interested in banking technology and GRC, I am developing BankGuard to apply what I learn about risk management, system development, internal controls and business processes.
+As a Business Systems student interested in banking GRC and technology risk, I'm building BankGuard to apply my understanding of risk management, internal controls, business processes and software development.
 
-**Project Status:** Early Development — Working Console Prototype (v0.3)
+**Current Version:** v0.5 — Risk Status Management  
+**Project Status:** In Development
 
 ---
 
 ## Project Objectives
 
-BankGuard aims to demonstrate how technology can support effective IT risk management.
+The aim of BankGuard is to explore how technology can support effective IT risk management in financial institutions.
 
-The main objectives are to:
+The project focuses on:
 
-- Develop a structured IT risk register.
-- Assess risks using likelihood and impact ratings.
-- Support accountability through risk ownership.
-- Improve the accuracy of recorded risk information.
-- Explore the importance of evidence, audit trails and management approvals.
-- Apply business analysis and GRC principles through software development.
+- Identifying and registering technology risks.
+- Assessing likelihood and impact.
+- Maintaining a structured IT risk register.
+- Improving data accuracy through validation controls.
+- Supporting accountability through risk ownership.
+- Tracking risk management activities.
+- Exploring how governance requirements can be implemented through software.
 
 ## Current Features
 
-The current prototype supports:
+### 1. IT Risk Registration
+Users can register IT risks by entering their names, descriptions, likelihood ratings and impact ratings.
 
-- **Risk Registration:** Users can enter and save IT risks.
-- **Risk Assessment:** Risks are rated using likelihood and impact values from 1 to 5.
-- **Automatic Risk Scoring:** SQLite calculates the risk score using likelihood × impact.
-- **Input Validation:** Invalid likelihood and impact ratings are rejected.
-- **Risk Register:** Users can retrieve and view saved risks.
-- **Risk Ownership:** Risks can be linked to a fictional employee.
-- **SQLite Integration:** Risk information is stored locally in a database.
-- **Console Menu:** Users can register risks, view existing risks and exit the application.
+### 2. Risk Assessment and Scoring
+Risks are assessed using a 1–5 scale for likelihood and impact.
 
-These features are part of an early prototype and are not intended for use in a real banking environment.
+**Risk Score = Likelihood × Impact**
+
+The maximum score is 25. SQLite automatically calculates the score.
+
+### 3. Input Validation
+BankGuard rejects incomplete risk information and ratings outside the accepted 1–5 range.
+
+### 4. Duplicate Risk Detection
+The application checks for existing risk titles before registering new risks, helping reduce duplicate records.
+
+### 5. Risk Ownership
+Risks are linked to an employee through a database relationship. The current prototype uses a fictional default risk owner.
+
+### 6. Risk Status Management
+The system supports four risk statuses:
+
+- **Open:** Risk has been registered.
+- **In Progress:** Risk treatment activities are underway.
+- **Mitigated:** Risk treatment has reduced the risk.
+- **Closed:** Risk has been marked as closed.
+
+Users can update risk statuses through the console menu. Formal approval and evidence requirements are planned for future development.
+
+### 7. SQLite Database Integration
+Risk records are saved locally and can be retrieved after restarting the application.
+
+### 8. Interactive Console Menu
+Users can register risks, view existing records, update risk statuses and exit the system.
+
+---
 
 ## Technologies Used
 
 | Technology | Purpose |
 |---|---|
-| Java | Application logic |
-| SQLite | Database storage |
-| JDBC | Connecting Java to SQLite |
+| Java | Application development and business logic |
+| SQLite | Local database management |
+| JDBC | Java and database communication |
 | Maven | Project and dependency management |
 | VS Code | Development environment |
-| Git & GitHub | Version control and project documentation |
+| Git & GitHub | Version control and documentation |
 
 ## Example Risk Assessment
 
-**Organisation:** Ubuntu Digital Bank (Fictional)
+**Fictional Organisation:** Ubuntu Digital Bank
 
 **Risk:** Customer Account Takeover
 
-**Description:** Criminals may gain unauthorised access to customer accounts.
+**Description:** Criminals may gain unauthorised access to customer banking accounts.
 
-| Risk Attribute | Value |
+| Attribute | Value |
 |---|---|
 | Likelihood | 3/5 |
 | Impact | 5/5 |
 | Risk Score | 15/25 |
 | Risk Owner | IT Operations Manager |
+| Initial Status | Open |
 
-Risk Score = Likelihood × Impact
+This example demonstrates how BankGuard captures and stores IT risk information.
 
-The example illustrates how BankGuard records risk assessment information.
-
-## Planned Features
-
-As development continues, I plan to introduce:
-
-- Duplicate risk detection and prevention.
-- Risk categories, statuses and treatment plans.
-- Improved risk ownership and accountability.
-- Role-based access control (RBAC).
-- Audit trails and change history.
-- Control assessments and evidence management.
-- Risk acceptance and management approval workflows.
-- Risk reporting and dashboards.
-- Better user interfaces.
-
-These are planned improvements and are not yet fully implemented.
-
-## Running the Project Locally
+## Running BankGuard Locally
 
 **Requirements:**
-- Java Development Kit (JDK 17 or later)
+- JDK 17 or later
 - Apache Maven
 
-**Steps:**
+**Instructions:**
 
-1. Clone this repository.
+1. Clone the GitHub repository.
 2. Open the project folder containing `pom.xml`.
-3. Compile the project using:
+3. Run `mvn compile` to compile the project.
+4. Open `App.java` in a Java-enabled IDE such as VS Code.
+5. Run the application.
+6. Use the console menu to interact with BankGuard.
 
-   `mvn compile`
+The application creates a local SQLite database if one does not already exist.
 
-4. Run `com.bankguard.App` from your Java-enabled IDE, such as VS Code.
-5. Use the console menu to register and view IT risks.
+## Development Roadmap
 
-The application creates its local SQLite database when it starts.
+### Completed Development
+- [x] Java and SQLite integration
+- [x] Database table creation
+- [x] IT risk registration
+- [x] Automatic risk scoring
+- [x] Input validation
+- [x] Risk register retrieval
+- [x] Basic duplicate risk detection
+- [x] Interactive console menu
+- [x] Basic risk status management
+
+### Planned Improvements
+- [ ] Stronger database-level duplicate prevention
+- [ ] Multiple employee registration and risk assignment
+- [ ] Risk categories and treatment plans
+- [ ] Audit trails and change history
+- [ ] Role-based access control (RBAC)
+- [ ] Control testing and evidence management
+- [ ] Risk approval and escalation workflows
+- [ ] Risk acceptance and closure authorisation
+- [ ] Risk reporting and dashboards
+- [ ] Graphical user interface
 
 ## What I'm Learning
 
-Through BankGuard, I am developing practical understanding of:
+Developing BankGuard is helping me connect my Business Systems studies with practical GRC principles.
 
-- IT risk identification and assessment.
-- Governance and accountability.
-- Internal controls and input validation.
-- Relational databases and SQL.
-- Java programming and application design.
-- Business requirements and system development.
-- The relationship between technology and risk management in banking.
+The project is improving my understanding of:
 
-## Project Development
+- IT risk management and assessment
+- Governance and accountability
+- Preventive controls and data validation
+- Business analysis and system requirements
+- Relational databases and SQL
+- Java programming
+- Risk management workflows
+- Technology risk within financial institutions
 
-BankGuard is an ongoing educational and portfolio project.
+One of my main learning objectives is understanding how risk management requirements can be translated into working system controls.
 
-My goal is not simply to build an application, but to understand how GRC requirements can be translated into functional systems and controls.
+## Feedback and Contributions
 
-I welcome constructive feedback, suggestions and advice from people working in GRC, banking technology, software development and information security.
+BankGuard is an ongoing personal learning project.
 
----
+I welcome constructive feedback, technical suggestions and insights from people working in GRC, IT risk, banking technology, business analysis and software development.
 
-**Disclaimer:** BankGuard is an independent educational project. Ubuntu Digital Bank is fictional. The application is not affiliated with any financial institution and is not certified or approved as a regulatory compliance solution.
+## Disclaimer
+
+BankGuard is an independent educational and portfolio project. Ubuntu Digital Bank is fictional.
+
+The system is not designed for production banking use and is not certified as a regulatory compliance solution.
