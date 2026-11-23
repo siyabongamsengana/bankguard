@@ -1,25 +1,37 @@
 
 package com.bankguard;
 
-// ========== IMPORTS ==========
+// ============================================================
+// IMPORTS
+// ============================================================
 
-// These allow Java to work with our SQLite database.
+// I import these classes because I need Java to
+// communicate with my SQLite database.
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.ResultSet;
 
 public class DatabaseManager {
 
-    // ========== DECLARATIONS ==========
+    // ========================================================
+    // 1. DECLARATIONS
+    // ========================================================
 
-    // This is where our database is stored.
+    // ========== DATABASE LOCATION ==========
+
+    // I store the location of my SQLite database here
+    // so I can use it whenever I need a connection.
     private static final String DB_URL =
             "jdbc:sqlite:bankguard.db";
 
-    // This instruction creates our users table.
+
+    // ========== USERS TABLE ==========
+
+    // I create this table to store employees and their roles.
+    // I will use these employees when assigning risk owners.
     private static final String USERS_TABLE = """
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -28,11 +40,19 @@ public class DatabaseManager {
         )
         """;
 
-    // This instruction creates our risks table.
+
+    // ========== RISKS TABLE ==========
+
+    // I create this table to store my registered IT risks.
+    // I limit likelihood and impact to values between 1 and 5.
+    // I let SQLite calculate the risk score automatically.
+    // I also give every new risk an Open status.
     private static final String RISKS_TABLE = """
         CREATE TABLE IF NOT EXISTS risks (
             risk_id INTEGER PRIMARY KEY,
+
             title TEXT NOT NULL,
+
             description TEXT NOT NULL,
 
             likelihood INTEGER NOT NULL
@@ -46,82 +66,301 @@ public class DatabaseManager {
 
             owner_id INTEGER,
 
+            status TEXT NOT NULL DEFAULT 'Open'
+                CHECK (status IN (
+                    'Open',
+                    'In Progress',
+                    'Mitigated',
+                    'Closed'
+                )),
+
             FOREIGN KEY (owner_id)
                 REFERENCES users(user_id)
         )
         """;
 
-    // This instruction adds our fictional employee.
+
+    // ========== UPDATING MY EXISTING DATABASE ==========
+
+    // My database already contains risks from earlier lessons.
+    // I need to add the status column without deleting them.
+    // Existing risks will automatically receive Open.
+    private static final String ADD_STATUS_COLUMN = """
+        ALTER TABLE risks
+        ADD COLUMN status TEXT NOT NULL DEFAULT 'Open'
+        CHECK (status IN (
+            'Open',
+            'In Progress',
+            'Mitigated',
+            'Closed'
+        ))
+        """;
+
+
+    // ========== ADDING MY FIRST EMPLOYEE ==========
+
+    // I add Lerato as my fictional IT Operations Manager.
+    // I use INSERT OR IGNORE so I don't add her ID twice.
     private static final String ADD_USER = """
         INSERT OR IGNORE INTO users
         (user_id, name, role)
         VALUES (1, 'Lerato', 'IT Operations Manager')
         """;
 
-    // This instruction saves a risk in the database.
+
+    // ========== REGISTERING A RISK ==========
+
+    // I use this instruction whenever I register a new risk.
+    // I give new risks an Open status by default.
     private static final String ADD_RISK = """
         INSERT INTO risks
-        (title, description, likelihood, impact, owner_id)
-        VALUES (?, ?, ?, ?, ?)
+        (title, description, likelihood, impact,
+         owner_id, status)
+        VALUES (?, ?, ?, ?, ?, 'Open')
         """;
 
 
-    // ========== DATABASE CONNECTION ==========
+    // ========== CHECKING FOR DUPLICATE RISKS ==========
 
-    // This method connects BankGuard to SQLite.
-    public static Connection connect()
-            throws SQLException {
+    // I check whether the same risk title already exists.
+    // I ignore capital letters and unnecessary spaces.
+    private static final String CHECK_DUPLICATE = """
+        SELECT COUNT(*)
+        FROM risks
+        WHERE LOWER(TRIM(title)) = LOWER(TRIM(?))
+        """;
 
-        // Declare our connection variable.
+
+    // ========== VIEWING MY REGISTERED RISKS ==========
+
+    // I retrieve the risk information and the owner's name.
+    // I use LEFT JOIN so I can connect risks to employees.
+    private static final String VIEW_RISKS = """
+        SELECT
+            r.risk_id,
+            r.title,
+            r.description,
+            r.likelihood,
+            r.impact,
+            r.risk_score,
+            r.status,
+            u.name AS owner_name
+        FROM risks r
+        LEFT JOIN users u
+            ON r.owner_id = u.user_id
+        ORDER BY r.risk_id
+        """;
+
+
+    // ========== UPDATING A RISK STATUS ==========
+
+    // I use this instruction when I need to change
+    // the status of a risk that is already registered.
+    private static final String UPDATE_RISK_STATUS = """
+        UPDATE risks
+        SET status = ?
+        WHERE risk_id = ?
+        """;
+
+
+    // ========================================================
+    // 2. DATABASE CONNECTION
+    // ========================================================
+
+    public static Connection connect() throws SQLException {
+
+        // ========== DECLARATIONS ==========
+
+        // I declare a variable to hold my database connection.
         Connection connection;
 
-        // Open the database connection.
+
+        // ========== INITIALISATION ==========
+
+        // I open a connection to my SQLite database.
         connection = DriverManager.getConnection(DB_URL);
 
-        // Make sure table relationships are followed.
+
+        // ========== PROCESSING ==========
+
+        // I enable foreign keys so I cannot assign a risk
+        // to an employee who does not exist in my database.
         try (Statement stmt = connection.createStatement()) {
+
             stmt.execute("PRAGMA foreign_keys = ON");
+
+        } catch (SQLException e) {
+
+            // If something goes wrong, I close the connection
+            // instead of leaving it open unnecessarily.
+            connection.close();
+
+            throw e;
         }
 
-        // Return the connection for other methods to use.
+
+        // ========== OUTPUT ==========
+
+        // I return the connection so my other methods
+        // can use it to communicate with SQLite.
         return connection;
     }
 
 
-    // ========== CREATING DATABASE TABLES ==========
+    // ========================================================
+    // 3. PREPARING MY STATUS COLUMN
+    // ========================================================
 
-    // This method creates the tables and our test employee.
+    private static void ensureStatusColumn(Connection conn)
+            throws SQLException {
+
+        // ========== DECLARATIONS ==========
+
+        // I use this variable to check whether
+        // my risks table already contains a status column.
+        boolean statusExists;
+
+
+        // ========== INITIALISATION ==========
+
+        // I start by assuming the column does not exist.
+        statusExists = false;
+
+
+        // ========== PROCESSING ==========
+
+        // I ask SQLite to show me the columns
+        // that already exist in my risks table.
+        try (Statement stmt = conn.createStatement();
+             ResultSet results =
+                     stmt.executeQuery("PRAGMA table_info(risks)")) {
+
+            // I go through the column names one by one.
+            while (results.next()) {
+
+                // I check whether I find a column called status.
+                if ("status".equalsIgnoreCase(
+                        results.getString("name"))) {
+
+                    // If I find it, I don't need to add it again.
+                    statusExists = true;
+                    break;
+                }
+            }
+        }
+
+
+        // ========== ADDING A MISSING COLUMN ==========
+
+        // I only add the status column if it is missing.
+        // This helps me keep the risks I already registered.
+        if (!statusExists) {
+
+            try (Statement stmt = conn.createStatement()) {
+
+                stmt.execute(ADD_STATUS_COLUMN);
+            }
+        }
+    }
+
+
+    // ========================================================
+    // 4. CREATING MY DATABASE TABLES
+    // ========================================================
+
     public static void createTables() {
 
-        // Connect to our database.
+        // ========== INITIALISATION AND PROCESSING ==========
+
+        // I connect to SQLite before creating my tables.
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
 
-            // Create the users table.
+            // I create the users table if it does not exist.
             stmt.execute(USERS_TABLE);
 
-            // Create the risks table.
+            // I create the risks table if it does not exist.
             stmt.execute(RISKS_TABLE);
 
-            // Add our first employee if not already there.
+            // I check whether an older database needs
+            // the new status column.
+            ensureStatusColumn(conn);
+
+            // I add my fictional employee if needed.
             stmt.executeUpdate(ADD_USER);
 
-            // Show that the database setup worked.
+
+            // ========== OUTPUT ==========
+
+            // I display this message when the setup succeeds.
             System.out.println(
                     "BankGuard database created successfully!");
 
         } catch (SQLException e) {
 
-            // Show the error if something goes wrong.
+            // I display the error so I can investigate
+            // why my database setup failed.
             System.out.println(
                     "Database error: " + e.getMessage());
         }
     }
 
 
-    // ========== REGISTERING AN IT RISK ==========
+    // ========================================================
+    // 5. CHECKING FOR EXISTING RISKS
+    // ========================================================
 
-    // This method allows BankGuard to save a new risk.
+    public static boolean riskExists(String riskName)
+            throws SQLException {
+
+        // ========== DECLARATIONS ==========
+
+        // I use this variable to remember whether
+        // I found a risk with the same title.
+        boolean exists;
+
+
+        // ========== INITIALISATION ==========
+
+        // I start by assuming the risk does not exist.
+        exists = false;
+
+
+        // ========== PROCESSING ==========
+
+        // I connect to my database and search for the title.
+        try (Connection conn = connect();
+             PreparedStatement stmt =
+                     conn.prepareStatement(CHECK_DUPLICATE)) {
+
+            // I give SQLite the risk name I want to check.
+            stmt.setString(1, riskName);
+
+            // I get the result of my search.
+            try (ResultSet results = stmt.executeQuery()) {
+
+                if (results.next()) {
+
+                    // If the count is above zero,
+                    // I know that a matching title exists.
+                    exists = results.getInt(1) > 0;
+                }
+            }
+        }
+
+
+        // ========== OUTPUT ==========
+
+        // I return true if I found a matching risk.
+        // Otherwise, I return false.
+        return exists;
+    }
+
+
+    // ========================================================
+    // 6. REGISTERING A NEW IT RISK
+    // ========================================================
+
     public static void addRisk(
             String title,
             String description,
@@ -129,136 +368,304 @@ public class DatabaseManager {
             int impact,
             int ownerId) {
 
-        // Check that the risk has a name and description.
+        // ========== VALIDATING REQUIRED INFORMATION ==========
+
+        // Before I save a risk, I check whether
+        // the name and description have been provided.
+        // I don't want incomplete records in my register.
         if (title == null || title.isBlank()
                 || description == null
                 || description.isBlank()) {
 
             System.out.println(
                     "Risk name and description are required.");
+
+            // I stop because the information is incomplete.
             return;
         }
 
-        // Check if the ratings follow our 1 to 5 scale.
+
+        // ========== VALIDATING RISK RATINGS ==========
+
+        // I only allow values between 1 and 5.
+        // This helps me keep my risk assessments consistent.
         if (likelihood < 1 || likelihood > 5
                 || impact < 1 || impact > 5) {
 
             System.out.println(
                     "Likelihood and impact must be 1 to 5.");
+
+            // I stop because the assessment is invalid.
             return;
         }
 
-        // Connect to SQLite to save our risk.
+
+        // ========== CHECKING FOR DUPLICATES ==========
+
+        // I don't want to register the same risk title twice.
+        // I check my database before saving another record.
+        try {
+
+            if (riskExists(title)) {
+
+                // If I find a matching title, I warn the user.
+                System.out.println(
+                        "A risk with this name already exists.");
+
+                // I stop the registration.
+                return;
+            }
+
+        } catch (SQLException e) {
+
+            // If my duplicate check fails, I don't save
+            // the risk because I cannot verify the title.
+            System.out.println(
+                    "Duplicate check failed: " + e.getMessage());
+
+            return;
+        }
+
+
+        // ========== PROCESSING ==========
+
+        // I connect to SQLite and prepare to save the risk.
         try (Connection conn = connect();
              PreparedStatement stmt =
                      conn.prepareStatement(ADD_RISK)) {
 
-            // Add the risk information to our SQL statement.
-            stmt.setString(1, title);
-            stmt.setString(2, description);
+            // I add the risk information to my SQL instruction.
+            stmt.setString(1, title.trim());
+            stmt.setString(2, description.trim());
             stmt.setInt(3, likelihood);
             stmt.setInt(4, impact);
             stmt.setInt(5, ownerId);
 
-            // Save the information in the risks table.
+            // I save the risk in my database.
+            // SQLite automatically calculates the risk score.
             stmt.executeUpdate();
 
-            // Tell us that the risk was saved.
+
+            // ========== OUTPUT ==========
+
+            // I show this message when the risk is saved.
             System.out.println(
                     "Risk registered successfully!");
 
         } catch (SQLException e) {
 
-            // Show the error if the risk cannot be saved.
+            // If something goes wrong, I display the error.
             System.out.println(
                     "Risk registration failed: " + e.getMessage());
         }
     }
 
-    // ========== VIEWING REGISTERED RISKS ==========
 
-    // This method gets the risks we saved in SQLite.
+    // ========================================================
+    // 7. UPDATING A RISK STATUS
+    // ========================================================
+
+    public static void updateRiskStatus(
+            int riskId, String newStatus) {
+
+        // ========== DECLARATIONS ==========
+
+        // I use this to check how many records were updated.
+        int rowsUpdated;
+
+        // I use this to store a recognised status.
+        String validStatus;
+
+
+        // ========== INITIALISATION ==========
+
+        // I haven't updated any records yet.
+        rowsUpdated = 0;
+
+        // I haven't confirmed the selected status yet.
+        validStatus = null;
+
+
+        // ========== VALIDATING THE RISK ID ==========
+
+        // I don't allow negative numbers or zero
+        // because my risk IDs start from 1.
+        if (riskId <= 0) {
+
+            System.out.println("Invalid risk ID.");
+            return;
+        }
+
+
+        // ========== VALIDATING THE STATUS ==========
+
+        // I check whether the selected status
+        // is one of the four statuses my system supports.
+        if (newStatus != null) {
+
+            switch (newStatus.trim().toLowerCase()) {
+
+                case "open" ->
+                    validStatus = "Open";
+
+                case "in progress" ->
+                    validStatus = "In Progress";
+
+                case "mitigated" ->
+                    validStatus = "Mitigated";
+
+                case "closed" ->
+                    validStatus = "Closed";
+
+                default ->
+                    validStatus = null;
+            }
+        }
+
+
+        // I stop if the status is not recognised.
+        if (validStatus == null) {
+
+            System.out.println("Invalid risk status.");
+            return;
+        }
+
+
+        // ========== PROCESSING ==========
+
+        // I connect to SQLite to update the selected risk.
+        try (Connection conn = connect();
+             PreparedStatement stmt =
+                     conn.prepareStatement(UPDATE_RISK_STATUS)) {
+
+            // I provide the new status.
+            stmt.setString(1, validStatus);
+
+            // I provide the ID of the risk I want to update.
+            stmt.setInt(2, riskId);
+
+            // I save the updated information.
+            rowsUpdated = stmt.executeUpdate();
+
+
+            // ========== OUTPUT ==========
+
+            // I check whether SQLite updated a record.
+            if (rowsUpdated > 0) {
+
+                System.out.println(
+                        "Risk status updated to: " + validStatus);
+
+            } else {
+
+                // If no record was updated,
+                // the risk ID probably does not exist.
+                System.out.println(
+                        "Risk not found. Check the risk ID.");
+            }
+
+        } catch (SQLException e) {
+
+            // I display the problem if the update fails.
+            System.out.println(
+                    "Status update failed: " + e.getMessage());
+        }
+    }
+
+
+    // ========================================================
+    // 8. VIEWING MY REGISTERED RISKS
+    // ========================================================
+
     public static void viewRisks() {
 
         // ========== DECLARATIONS ==========
 
-        // This SQL instruction gets the risk information.
-        // JOIN connects each risk to its owner in users.
-        String sql = """
-            SELECT r.risk_id, r.title, r.description,
-                   r.likelihood, r.impact, r.risk_score,
-                   u.name AS owner_name
-            FROM risks r
-            LEFT JOIN users u
-                ON r.owner_id = u.user_id
-            ORDER BY r.risk_id
-            """;
-
-        // This helps us check if any risks were found.
+        // I use this to check whether I found any records.
         boolean riskFound;
 
 
         // ========== INITIALISATION ==========
 
-        // At the beginning, we have not found any risks.
+        // I haven't found any risks yet.
         riskFound = false;
 
 
         // ========== PROCESSING ==========
 
-        // Connect to the database and get the saved risks.
+        // I connect to SQLite and retrieve my saved risks.
         try (Connection conn = connect();
              PreparedStatement stmt =
-                     conn.prepareStatement(sql);
+                     conn.prepareStatement(VIEW_RISKS);
              ResultSet results = stmt.executeQuery()) {
 
-            // Go through each risk returned by SQLite.
+            System.out.println(
+                    "\n========== IT RISK REGISTER ==========");
+
+            // I go through my saved risks one at a time.
             while (results.next()) {
 
-                // We have found at least one risk.
+                // I now know that at least one risk exists.
                 riskFound = true;
 
 
                 // ========== OUTPUT ==========
 
-                // Display the risk information.
-                System.out.println("\n--------------------");
+                // I display the information in a clear format.
+                System.out.println(
+                        "\n--------------------------------------");
 
-                System.out.println("Risk ID: R-"
+                System.out.println(
+                        "Risk ID: R-"
                         + results.getInt("risk_id"));
 
-                System.out.println("Risk Name: "
+                System.out.println(
+                        "Risk Name: "
                         + results.getString("title"));
 
-                System.out.println("Description: "
+                System.out.println(
+                        "Description: "
                         + results.getString("description"));
 
-                System.out.println("Likelihood: "
-                        + results.getInt("likelihood"));
+                System.out.println(
+                        "Likelihood: "
+                        + results.getInt("likelihood") + "/5");
 
-                System.out.println("Impact: "
-                        + results.getInt("impact"));
+                System.out.println(
+                        "Impact: "
+                        + results.getInt("impact") + "/5");
 
-                System.out.println("Risk Score: "
+                System.out.println(
+                        "Risk Score: "
                         + results.getInt("risk_score") + "/25");
 
-                System.out.println("Risk Owner: "
+                System.out.println(
+                        "Risk Owner: "
                         + results.getString("owner_name"));
+
+                System.out.println(
+                        "Status: "
+                        + results.getString("status"));
             }
 
-            // If the database has no risks, tell the user.
+
+            // ========== NO RISKS FOUND ==========
+
+            // If my database has no risks, I display
+            // a message instead of leaving the screen empty.
             if (!riskFound) {
-                System.out.println("No risks registered yet.");
+
+                System.out.println(
+                        "No risks registered yet.");
             }
 
         } catch (SQLException e) {
 
-            // Show us the problem if retrieving risks fails.
+            // I display the error if I cannot retrieve
+            // the information from my database.
             System.out.println(
                     "Error viewing risks: " + e.getMessage());
         }
     }
-
 }
-
 

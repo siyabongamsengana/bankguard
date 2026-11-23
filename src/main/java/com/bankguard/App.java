@@ -1,96 +1,121 @@
 
 package com.bankguard;
 
-// This allows us to receive information from the user.
+// ============================================================
+// IMPORTS
+// ============================================================
+
+// I import Scanner because I want employees
+// to interact with BankGuard using the keyboard.
 import java.util.Scanner;
 
 public class App {
 
     public static void main(String[] args) {
 
-        // ========== DECLARATIONS ==========
+        // ====================================================
+        // 1. DECLARATIONS
+        // ====================================================
 
-        // Scanner allows the user to enter information.
+        // I use Scanner to receive keyboard input.
         Scanner input;
 
-        // This stores the menu option selected by the user.
+        // I store the menu option selected by the employee.
         String choice;
 
-        // These store the information about a risk.
+        // I use these variables when registering a new risk.
         String riskName;
         String riskDescription;
-
-        // These store our risk assessment values.
         int likelihood;
         int impact;
 
-        // This stores the ID of the risk owner.
+        // I use this variable to identify the risk owner.
         int riskOwnerId;
 
-        // This controls whether the program keeps running.
+        // I use these variables when updating a risk status.
+        int riskId;
+        String riskStatus;
+        String statusChoice;
+
+        // I use this variable to keep BankGuard running.
         boolean running;
 
+        // ====================================================
+        // 2. INITIALISATION
+        // ====================================================
 
-        // ========== INITIALISATION ==========
-
-        // Prepare Scanner so we can receive user input.
+        // I prepare Scanner so I can read keyboard input.
         input = new Scanner(System.in);
 
-        // The program must continue until the user exits.
+        // I want BankGuard to continue until I choose Exit.
         running = true;
 
-        // Our fictional employee has user ID 1.
+        // For now, I assign risks to my fictional
+        // IT Operations Manager, Lerato.
         riskOwnerId = 1;
 
-        // Start our database before using the system.
+        // I prepare my SQLite database before
+        // allowing employees to use the application.
         DatabaseManager.createTables();
 
+        // ====================================================
+        // 3. MAIN PROGRAM
+        // ====================================================
 
-        // ========== MAIN PROGRAM ==========
-
-        // Keep showing the menu while running is true.
+        // I use this loop to keep displaying the menu
+        // until the employee chooses to exit BankGuard.
         while (running) {
 
-            // ========== DISPLAY MENU ==========
+            // ========== DISPLAYING MY MENU ==========
 
-            System.out.println("\n========= BANKGUARD =========");
+            System.out.println(
+                    "\n========== BANKGUARD ==========");
+
             System.out.println("1. Register a new IT risk");
             System.out.println("2. View registered risks");
-            System.out.println("3. Exit");
+            System.out.println("3. Update risk status");
+            System.out.println("4. Exit");
 
             System.out.print("\nChoose an option: ");
 
-            // Get the user's menu choice.
+            // I read the menu option selected by the employee.
             choice = input.nextLine();
 
+            // ========== PROCESSING MY MENU ==========
 
-            // ========== PROCESSING MENU OPTIONS ==========
-
+            // I use switch to decide which action
+            // BankGuard should perform.
             switch (choice) {
 
-                // ========== REGISTER A RISK ==========
+                // ============================================
+                // OPTION 1: REGISTERING A NEW RISK
+                // ============================================
 
                 case "1" -> {
 
-                    // Ask the user for risk information.
+                    // I ask the employee to enter
+                    // the information about the new risk.
                     System.out.print("\nRisk name: ");
                     riskName = input.nextLine();
 
                     System.out.print("Risk description: ");
                     riskDescription = input.nextLine();
 
-                    // We use try to handle invalid number entries.
                     try {
 
+                        // I ask for the likelihood rating.
                         System.out.print("Likelihood (1-5): ");
                         likelihood = Integer.parseInt(
                                 input.nextLine());
 
+                        // I ask for the impact rating.
                         System.out.print("Impact (1-5): ");
                         impact = Integer.parseInt(
                                 input.nextLine());
 
-                        // Send the information to SQLite.
+                        // I send the information to my
+                        // DatabaseManager so it can be validated
+                        // and saved in SQLite.
                         DatabaseManager.addRisk(
                                 riskName,
                                 riskDescription,
@@ -101,50 +126,140 @@ public class App {
 
                     } catch (NumberFormatException e) {
 
-                        // This runs if someone enters letters
-                        // instead of a valid whole number.
+                        // If letters are entered instead of
+                        // numbers, I display an error message.
                         System.out.println(
-                                "Please enter numbers for the ratings.");
+                                "Please enter valid whole numbers.");
                     }
                 }
 
-
-                // ========== VIEW REGISTERED RISKS ==========
+                // ============================================
+                // OPTION 2: VIEWING MY REGISTERED RISKS
+                // ============================================
 
                 case "2" -> {
 
-                    // Get the saved risks from our database.
+                    // I retrieve all the risks I have
+                    // already saved in my SQLite database.
                     DatabaseManager.viewRisks();
                 }
 
-
-                // ========== EXIT THE SYSTEM ==========
+                // ============================================
+                // OPTION 3: UPDATING A RISK STATUS
+                // ============================================
 
                 case "3" -> {
 
-                    // Stop the loop and close BankGuard.
+                    // I first display the existing risks
+                    // so I can choose the correct risk ID.
+                    DatabaseManager.viewRisks();
+
+                    try {
+
+                        // I ask which risk needs an update.
+                        System.out.print(
+                                "\nEnter the risk ID number: ");
+
+                        riskId = Integer.parseInt(
+                                input.nextLine());
+
+                        // I display the available statuses
+                        // so the employee knows what to select.
+                        System.out.println("\nAvailable Statuses:");
+                        System.out.println("1. Open");
+                        System.out.println("2. In Progress");
+                        System.out.println("3. Mitigated");
+                        System.out.println("4. Closed");
+
+                        System.out.print(
+                                "\nChoose the new status: ");
+
+                        // I read the selected status option.
+                        statusChoice = input.nextLine();
+
+                        // ========== STATUS SELECTION ==========
+
+                        // I convert the number selected
+                        // into the correct status name.
+                        switch (statusChoice) {
+
+                            case "1" ->
+                                riskStatus = "Open";
+
+                            case "2" ->
+                                riskStatus = "In Progress";
+
+                            case "3" ->
+                                riskStatus = "Mitigated";
+
+                            case "4" ->
+                                riskStatus = "Closed";
+
+                            default ->
+                                riskStatus = null;
+                        }
+
+                        // ========== STATUS VALIDATION ==========
+
+                        // I check whether a valid status
+                        // was selected before updating the risk.
+                        if (riskStatus == null) {
+
+                            System.out.println(
+                                    "Invalid status selection.");
+
+                        } else {
+
+                            // I send the risk ID and status
+                            // to DatabaseManager for updating.
+                            DatabaseManager.updateRiskStatus(
+                                    riskId, riskStatus);
+                        }
+
+                    } catch (NumberFormatException e) {
+
+                        // If the risk ID is not a valid number,
+                        // I display an error instead of crashing.
+                        System.out.println(
+                                "Please enter a valid risk ID.");
+                    }
+                }
+
+                // ============================================
+                // OPTION 4: EXITING BANKGUARD
+                // ============================================
+
+                case "4" -> {
+
+                    // I change running to false
+                    // so my while loop stops.
                     running = false;
 
+                    // I display a message before exiting.
                     System.out.println(
                             "\nThank you for using BankGuard.");
                 }
 
-
-                // ========== INVALID MENU OPTION ==========
+                // ============================================
+                // INVALID MENU OPTION
+                // ============================================
 
                 default -> {
 
-                    // This runs if the user enters
-                    // an option that does not exist.
+                    // If an option outside the menu is entered,
+                    // I display a message and show the menu again.
                     System.out.println(
                             "Invalid option. Please try again.");
                 }
             }
         }
 
-        // ========== END OF PROGRAM ==========
+        // ====================================================
+        // 4. END OF PROGRAM
+        // ====================================================
 
-        // Close Scanner when we finish using it.
+        // I close Scanner because I no longer
+        // need to receive keyboard input.
         input.close();
     }
 }
