@@ -2,8 +2,9 @@
 # Maven generated files
 target/
 
-# Local SQLite database
+# Local SQLite databases
 *.db
+*.db2
 *.db-shm
 *.db-wal
 
