@@ -1,4 +1,4 @@
-:::writing{variant="document" id="63821"}
+
 # BankGuard — IT Risk Management System
 
 **Version:** 0.9  
