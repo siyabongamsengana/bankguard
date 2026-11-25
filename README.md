@@ -1,56 +1,72 @@
+:::writing{variant="document" id="63821"}
 # BankGuard — IT Risk Management System
 
-**Version:** 0.8 | **Status:** Under Development
+**Version:** 0.9  
+**Status:** Active Development  
+**Focus:** Governance, Risk and Compliance (GRC) | IT Risk | Banking
 
-## About the Project
+## About BankGuard
 
 BankGuard is a Java-based IT risk management system developed for Ubuntu Digital Bank, a fictional financial institution.
 
-The project demonstrates how banks can identify, assess, document and manage technology risks while maintaining clear ownership and accountability.
+The project explores how organisations can identify, assess, monitor and manage technology risks while maintaining clear ownership, accountability and audit records.
 
-I'm developing BankGuard as a practical portfolio project to apply my knowledge of Governance, Risk and Compliance (GRC), Business Systems and IT risk management.
+I'm building BankGuard as a practical portfolio project to strengthen my understanding of Governance, Risk and Compliance (GRC), business systems and technology risk management within the banking sector.
+
+Rather than only studying GRC concepts, I'm applying them by building a working system.
 
 ## Key Features
 
-### 1. Risk Registration
+### 1. IT Risk Registration and Assessment
 - Register IT risks with a title and description.
-- Assess likelihood and impact on a scale of 1–5.
-- Automatically calculate the risk score using likelihood × impact.
+- Assess likelihood and impact using a 1–5 scale.
+- Automatically calculate risk scores using likelihood × impact.
 - Prevent duplicate risk titles.
+- Assign each risk to a registered employee.
 
 ### 2. Risk Monitoring
-- View registered risks and their assessments.
-- Track risk statuses: Open, In Progress, Mitigated and Closed.
-- Update risk statuses as treatment progresses.
+- View registered risks, risk scores, owners and statuses.
+- Update risk statuses: Open, In Progress, Mitigated and Closed.
+- Monitor changes to existing risks.
 
-### 3. Employee Management
+### 3. Employee Management and Risk Ownership
 - Register employees with their names and roles.
 - View registered employees and their unique IDs.
-- Store employee information in an SQLite database.
+- Assign risks to registered employees.
+- Transfer risk ownership between employees.
+- Prevent ownership assignments to employees who do not exist.
 
-### 4. Risk Ownership and Accountability
-- Assign registered employees as risk owners.
-- Prevent assigning risks to employees who do not exist.
-- Transfer ownership of existing risks to another registered employee.
-- View the current owner of each risk.
+### 4. Audit Trails and Accountability — v0.9
+- Automatically record changes to risk statuses and owners.
+- Store the previous and new values.
+- Record when changes occur using UTC timestamps.
+- Record the employee ID supplied by the person making the change.
+- View the audit history of a specific risk.
+- Reject invalid acting employee IDs.
+- Avoid creating audit entries when values remain unchanged.
 
-### 5. Data Storage
-- Store risks and employees using SQLite.
-- Preserve saved records between application sessions.
-- Use SQL queries stored in separate resource files.
+### 5. Transaction Management
+BankGuard uses SQLite database transactions to coordinate risk updates with their corresponding audit records.
+
+If an audit insert fails, the application is designed to roll back the risk update so that both operations succeed or fail together.
+
+This supports consistency between the risk register and its audit history.
 
 ## Technologies Used
 
 | Technology | Purpose |
 |---|---|
-| Java | Application development |
-| SQLite | Database management |
+| Java | Application development and business logic |
+| SQLite | Local database |
 | JDBC | Database connectivity |
-| Maven | Project build and dependency management |
+| Maven | Build and dependency management |
+| SQL | Database queries and migrations |
 | Git and GitHub | Version control |
-| VS Code | Development environment |
+| Visual Studio Code | Development environment |
 
-## Project Structure
+## Project Architecture
+
+BankGuard uses a layered structure to separate responsibilities.
 
 ```text
 src/main/
@@ -60,114 +76,203 @@ src/main/
 │   │   ├── DatabaseManager.java
 │   │   └── SqlLoader.java
 │   ├── model/
+│   │   ├── Risk.java
 │   │   ├── Employee.java
-│   │   └── Risk.java
+│   │   └── AuditLog.java
 │   ├── repository/
+│   │   ├── RiskRepository.java
 │   │   ├── EmployeeRepository.java
-│   │   └── RiskRepository.java
+│   │   └── AuditRepository.java
 │   ├── service/
+│   │   ├── RiskService.java
 │   │   ├── EmployeeService.java
-│   │   └── RiskService.java
+│   │   └── AuditService.java
 │   └── ui/
 │       └── ConsoleMenu.java
+│
 └── resources/sql/
     ├── schema.sql
     ├── migrations/
+    │   ├── add_status.sql
+    │   └── add_audit_logs.sql
     ├── risks/
-    └── users/
+    ├── users/
+    └── audit/
+        ├── insert_audit_log.sql
+        └── view_audit_logs.sql
 ```
 
-## How Risk Scoring Works
+**Architecture responsibilities:**
 
-BankGuard uses a simple quantitative scoring method:
+- **Model:** Represents risks, employees and audit records.
+- **Repository:** Communicates with SQLite.
+- **Service:** Applies validation and business rules.
+- **UI:** Provides the current console-based interface.
+- **Database:** Manages connections, tables and migrations.
+
+This separation makes the system easier to maintain, test and eventually convert into a web application.
+
+## Risk Scoring
+
+BankGuard calculates risk scores using:
 
 **Risk Score = Likelihood × Impact**
 
-Both likelihood and impact are scored from 1 to 5.
+Both values range from 1 to 5, producing scores between 1 and 25.
 
-**Example: Customer Account Takeover**
+### Example: Customer Account Takeover
 
-- Likelihood: 3/5
-- Impact: 5/5
-- Risk score: 15/25
+| Assessment | Value |
+|---|---|
+| Likelihood | 3/5 |
+| Impact | 5/5 |
+| Risk Score | 15/25 |
 
-A higher score indicates a risk that requires greater attention. The score supports risk assessment and prioritisation; it does not replace professional judgement.
+The score helps compare and prioritise risks. It is not a complete risk assessment on its own, and treatment decisions still require business context.
 
-## How to Run the Project
+## Audit Trail Example
 
-**Requirements:**
+Suppose a risk owner changes from Employee 1 to Employee 2.
+
+BankGuard records an entry similar to:
+
+```text
+Risk ID: R-1
+Action: OWNER_CHANGED
+Previous Value: 1
+New Value: 2
+Changed By Employee ID: 3
+Timestamp (UTC): 2026-11-25T10:30:00.000Z
+```
+
+This allows the previous and new values to be reviewed rather than only displaying the latest information.
+
+**Important limitation:** Employee IDs are currently self-reported. BankGuard does not yet authenticate the person performing the action, so these records should not be treated as verified user identities.
+
+## How to Run BankGuard
+
+### Requirements
+
 - Java 17 or newer
 - Apache Maven
 
-Clone the repository:
+### Clone the repository
 
 ```bash
 git clone https://github.com/siyabongamsengana/bankguard.git
 cd bankguard
 ```
 
-Compile:
+### Compile the project
 
 ```bash
 mvn clean compile
 ```
 
-Run the application:
+### Run the application
 
-```bash
-mvn exec:java -Dexec.mainClass=com.bankguard.App
-```
+Open `App.java` in a Java-enabled IDE and run its `main` method.
 
-The run command requires the Maven Exec Plugin to be available. Alternatively, run `App.java` from a Java-enabled IDE.
+BankGuard currently uses a console interface and creates a local SQLite database. Database files are excluded from version control.
 
-The application uses a local SQLite database, which is excluded from GitHub.
+## Functional Testing
 
-## Testing
+### v0.8 — Risk Ownership
 
-BankGuard v0.8 successfully passed six functional tests:
+| Test | Result |
+|---|---|
+| Register an employee | Passed |
+| View employees | Passed |
+| Register a risk with an owner | Passed |
+| Reject an invalid employee | Passed |
+| Change risk ownership | Passed |
+| Confirm updated ownership | Passed |
 
-- Employee registration
-- Viewing registered employees
-- Risk registration with a valid owner
-- Rejection of invalid employee IDs
-- Changing risk ownership
-- Confirming updated risk ownership
+**Result: 6/6 passed.**
 
-**Result: 6/6 tests passed.**
+### v0.9 — Audit Trails
 
-## Development Progress
+| Test | Result |
+|---|---|
+| Record a risk status change | Passed |
+| View status change history | Passed |
+| Record a risk ownership change | Passed |
+| View ownership change history | Passed |
+| Reject invalid acting employee | Passed |
+| Reject unchanged values without creating new audit records | Passed |
 
-| Version | Feature | Status |
+**Result: 6/6 passed.**
+
+The transaction implementation has also been reviewed for rollback handling. A deliberate failure test against the running Java application is still pending.
+
+## Development Roadmap
+
+| Version | Focus | Status |
 |---|---|---|
 | v0.5 | Basic risk registration and assessment | Completed |
-| v0.7 | Layered Java architecture and SQL resource separation | Completed |
+| v0.7 | Layered architecture and SQL separation | Completed |
 | v0.8 | Employee management and risk ownership | Completed |
-| v0.9 | Audit trails and change history | Planned |
+| v0.9 | Audit trails and accountability | Completed |
+| v1.0 | Risk reporting, risk categories and heat map | Planned |
+| Future | Web dashboard, APIs, authentication and role-based access | Planned |
+| Future | Control assessments, evidence management and risk treatment | Planned |
 
-## Future Improvements
+## Planned Web Application
 
-The next phase will focus on audit trails, including recording risk ownership changes, risk status changes, previous and new values, timestamps and the employee reported as performing each action.
+The long-term goal is to convert BankGuard from a console application into a browser-based IT risk management system.
 
-Longer-term improvements may include authentication, access controls, control assessments, evidence management and reporting.
+The planned architecture includes:
 
-## GRC Learning Objectives
+- **Frontend:** An interactive risk management dashboard.
+- **Backend:** Java with Spring Boot and REST APIs.
+- **Database:** SQLite initially, with potential migration to a server-based database.
+- **Security:** Authentication and role-based access controls.
+- **Reporting:** Risk summaries, heat maps and management reporting.
 
-Through BankGuard, I'm practising:
+These are planned improvements, not features currently available in v0.9.
+
+## What I'm Learning
+
+Developing BankGuard is helping me build practical knowledge in:
 
 - IT risk identification and assessment.
 - Risk ownership and accountability.
-- Risk monitoring and treatment tracking.
-- Database design and data integrity.
+- Risk monitoring and status tracking.
+- Audit trails and traceability.
+- Evidence retention and data integrity.
 - Business rules and validation.
-- Separation of responsibilities in software architecture.
-- Documentation and functional testing.
+- Database design and transactions.
+- Java application architecture.
+- Translating GRC concepts into business system requirements.
+
+The project is also helping me understand how technology can support risk management processes instead of treating GRC as only policies and documentation.
+
+## Project Limitations
+
+BankGuard is still an educational application.
+
+Current limitations include:
+
+- No user authentication or verified identity.
+- No role-based access controls.
+- No controls testing or evidence-upload functionality.
+- No formal risk approval workflow.
+- No protection against privileged users modifying the SQLite database directly.
+- No web interface yet.
+
+The audit trail is a useful learning implementation but should not be described as tamper-proof or production-grade.
 
 ## Disclaimer
 
-BankGuard is an educational portfolio project. Ubuntu Digital Bank is fictional, and the application is not intended for production banking use.
+BankGuard is an independent educational portfolio project.
+
+Ubuntu Digital Bank is fictional. The application is not affiliated with any real financial institution and is not intended for production banking use.
 
 ---
 
 **Developed by Siyabonga Msengana**
 
-*IT in Business Systems | Governance, Risk and Compliance | Technology Risk*
+*IT in Business Systems Student | Governance, Risk and Compliance | Technology Risk*
+
+**GitHub:** https://github.com/siyabongamsengana/bankguard
+:::
