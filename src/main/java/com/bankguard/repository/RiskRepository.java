@@ -5,12 +5,15 @@ package com.bankguard.repository;
 // IMPORTS
 // ============================================================
 
-// I import these classes to work with my risks
-// and communicate with my SQLite database.
+// I use these classes to manage risks and communicate
+// with my SQLite database.
+
+// I also use AuditService to record risk changes.
 
 import com.bankguard.database.DatabaseManager;
 import com.bankguard.database.SqlLoader;
 import com.bankguard.model.Risk;
+import com.bankguard.service.AuditService;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -26,7 +29,7 @@ public class RiskRepository {
     // 1. DECLARATIONS
     // ========================================================
 
-    // I keep all my risk SQL file locations together.
+    // I keep the locations of my SQL files together.
 
     private static final String ADD_RISK_FILE =
             "/sql/risks/add_risk.sql";
@@ -43,9 +46,26 @@ public class RiskRepository {
     private static final String UPDATE_OWNER_FILE =
             "/sql/risks/update_risk_owner.sql";
 
+    // I use this query to find the values before a change.
+    private static final String FIND_RISK_FILE =
+            "/sql/risks/find_risk_for_audit.sql";
+
+    // I use my audit service to save evidence of changes.
+    private final AuditService auditService;
 
     // ========================================================
-    // 2. CHECKING FOR DUPLICATE RISKS
+    // 2. INITIALISATION
+    // ========================================================
+
+    public RiskRepository() {
+
+        // I initialise the service responsible for
+        // recording my audit information.
+        auditService = new AuditService();
+    }
+
+    // ========================================================
+    // 3. CHECKING FOR DUPLICATE RISKS
     // ========================================================
 
     public boolean riskExists(String riskName)
@@ -56,12 +76,10 @@ public class RiskRepository {
         boolean exists;
         String sql;
 
-
         // ========== INITIALISATION ==========
 
         exists = false;
         sql = SqlLoader.loadSql(CHECK_DUPLICATE_FILE);
-
 
         // ========== PROCESSING ==========
 
@@ -80,15 +98,13 @@ public class RiskRepository {
             }
         }
 
-
         // ========== OUTPUT ==========
 
         return exists;
     }
 
-
     // ========================================================
-    // 3. SAVING A NEW RISK
+    // 4. SAVING A NEW RISK
     // ========================================================
 
     public void saveRisk(
@@ -103,15 +119,13 @@ public class RiskRepository {
 
         String sql;
 
-
         // ========== INITIALISATION ==========
 
         sql = SqlLoader.loadSql(ADD_RISK_FILE);
 
-
         // ========== PROCESSING ==========
 
-        // I save the risk with its selected employee owner.
+        // I save my new risk with its selected owner.
         try (Connection conn = DatabaseManager.connect();
              PreparedStatement stmt =
                      conn.prepareStatement(sql)) {
@@ -126,9 +140,8 @@ public class RiskRepository {
         }
     }
 
-
     // ========================================================
-    // 4. VIEWING ALL REGISTERED RISKS
+    // 5. VIEWING ALL REGISTERED RISKS
     // ========================================================
 
     public List<Risk> findAllRisks()
@@ -140,16 +153,14 @@ public class RiskRepository {
         String sql;
         Risk risk;
 
-
         // ========== INITIALISATION ==========
 
         risks = new ArrayList<>();
         sql = SqlLoader.loadSql(VIEW_RISKS_FILE);
 
-
         // ========== PROCESSING ==========
 
-        // I retrieve each risk and its owner information.
+        // I retrieve my risks and their owner information.
         try (Connection conn = DatabaseManager.connect();
              PreparedStatement stmt =
                      conn.prepareStatement(sql);
@@ -172,91 +183,233 @@ public class RiskRepository {
             }
         }
 
-
         // ========== OUTPUT ==========
 
         return risks;
     }
 
-
     // ========================================================
-    // 5. UPDATING A RISK STATUS
+    // 6. UPDATING RISK STATUS WITH AN AUDIT TRAIL
     // ========================================================
 
-    public int updateStatus(int riskId, String newStatus)
+    public int updateStatus(
+            int riskId,
+            String newStatus,
+            int changedBy)
             throws SQLException, IOException {
 
         // ========== DECLARATIONS ==========
 
-        String sql;
+        String findSql;
+        String updateSql;
+        String oldStatus;
         int rowsUpdated;
-
 
         // ========== INITIALISATION ==========
 
-        sql = SqlLoader.loadSql(UPDATE_STATUS_FILE);
-        rowsUpdated = 0;
+        findSql = SqlLoader.loadSql(FIND_RISK_FILE);
+        updateSql = SqlLoader.loadSql(UPDATE_STATUS_FILE);
 
+        oldStatus = null;
+        rowsUpdated = 0;
 
         // ========== PROCESSING ==========
 
-        try (Connection conn = DatabaseManager.connect();
-             PreparedStatement stmt =
-                     conn.prepareStatement(sql)) {
+        // I open one connection for the whole operation.
+        try (Connection conn = DatabaseManager.connect()) {
 
-            stmt.setString(1, newStatus);
-            stmt.setInt(2, riskId);
+            // I start a transaction.
+            // Changes are not final until I commit them.
+            conn.setAutoCommit(false);
 
-            rowsUpdated = stmt.executeUpdate();
+            try {
+
+                // I retrieve the risk's current status.
+                try (PreparedStatement stmt =
+                             conn.prepareStatement(findSql)) {
+
+                    stmt.setInt(1, riskId);
+
+                    try (ResultSet results =
+                                 stmt.executeQuery()) {
+
+                        if (results.next()) {
+                            oldStatus =
+                                    results.getString("status");
+                        }
+                    }
+                }
+
+                // I stop if the risk does not exist.
+                if (oldStatus == null) {
+                    conn.rollback();
+                    return 0;
+                }
+
+                // I do not update an unchanged status.
+                if (oldStatus.equals(newStatus)) {
+                    conn.rollback();
+                    return 0;
+                }
+
+                // I update the risk using the same connection.
+                try (PreparedStatement stmt =
+                             conn.prepareStatement(updateSql)) {
+
+                    stmt.setString(1, newStatus);
+                    stmt.setInt(2, riskId);
+
+                    rowsUpdated = stmt.executeUpdate();
+                }
+
+                // I only record the change if the
+                // risk was actually updated.
+                if (rowsUpdated > 0) {
+
+                    auditService.recordChange(
+                            conn,
+                            riskId,
+                            "STATUS_CHANGED",
+                            oldStatus,
+                            newStatus,
+                            changedBy
+                    );
+                }
+
+                // I commit the update and its audit record.
+                // Both become permanent together.
+                conn.commit();
+
+            } catch (SQLException | IOException
+                     | RuntimeException e) {
+
+                // I undo the update if either operation fails.
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
+
+                throw e;
+            }
         }
-
 
         // ========== OUTPUT ==========
 
         return rowsUpdated;
     }
 
-
     // ========================================================
-    // 6. CHANGING A RISK OWNER
+    // 7. CHANGING RISK OWNERSHIP WITH AN AUDIT TRAIL
     // ========================================================
 
-    public int updateRiskOwner(int riskId, int employeeId)
+    public int updateRiskOwner(
+            int riskId,
+            int newOwnerId,
+            int changedBy)
             throws SQLException, IOException {
 
         // ========== DECLARATIONS ==========
 
-        String sql;
+        String findSql;
+        String updateSql;
+        Integer oldOwnerId;
         int rowsUpdated;
-
 
         // ========== INITIALISATION ==========
 
-        // I load the SQL instruction for changing owners.
-        sql = SqlLoader.loadSql(UPDATE_OWNER_FILE);
-        rowsUpdated = 0;
+        findSql = SqlLoader.loadSql(FIND_RISK_FILE);
+        updateSql = SqlLoader.loadSql(UPDATE_OWNER_FILE);
 
+        oldOwnerId = null;
+        rowsUpdated = 0;
 
         // ========== PROCESSING ==========
 
-        try (Connection conn = DatabaseManager.connect();
-             PreparedStatement stmt =
-                     conn.prepareStatement(sql)) {
+        // I use one connection for the ownership update
+        // and the audit record.
+        try (Connection conn = DatabaseManager.connect()) {
 
-            // I provide the employee who will own the risk.
-            stmt.setInt(1, employeeId);
+            // I begin my database transaction.
+            conn.setAutoCommit(false);
 
-            // I identify the risk I want to reassign.
-            stmt.setInt(2, riskId);
+            try {
 
-            // I save the ownership change.
-            rowsUpdated = stmt.executeUpdate();
+                // I find the risk's current owner.
+                try (PreparedStatement stmt =
+                             conn.prepareStatement(findSql)) {
+
+                    stmt.setInt(1, riskId);
+
+                    try (ResultSet results =
+                                 stmt.executeQuery()) {
+
+                        if (results.next()) {
+                            oldOwnerId =
+                                    results.getInt("owner_id");
+                        }
+                    }
+                }
+
+                // I reject a risk ID that does not exist.
+                if (oldOwnerId == null) {
+                    conn.rollback();
+                    return 0;
+                }
+
+                // I do not record a change when the
+                // selected owner is already responsible.
+                if (oldOwnerId == newOwnerId) {
+                    conn.rollback();
+                    return 0;
+                }
+
+                // I update the owner in the risks table.
+                try (PreparedStatement stmt =
+                             conn.prepareStatement(updateSql)) {
+
+                    // My SQL expects the new owner first.
+                    stmt.setInt(1, newOwnerId);
+
+                    // The risk ID comes second.
+                    stmt.setInt(2, riskId);
+
+                    rowsUpdated = stmt.executeUpdate();
+                }
+
+                // I record both the old and new owner IDs.
+                if (rowsUpdated > 0) {
+
+                    auditService.recordChange(
+                            conn,
+                            riskId,
+                            "OWNER_CHANGED",
+                            String.valueOf(oldOwnerId),
+                            String.valueOf(newOwnerId),
+                            changedBy
+                    );
+                }
+
+                // I make both changes permanent together.
+                conn.commit();
+
+            } catch (SQLException | IOException
+                     | RuntimeException e) {
+
+                // If anything fails, I undo the update.
+                // This prevents unaudited ownership changes.
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
+
+                throw e;
+            }
         }
-
 
         // ========== OUTPUT ==========
 
-        // I return how many records were updated.
         return rowsUpdated;
     }
 }

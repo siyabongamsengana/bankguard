@@ -6,7 +6,7 @@ package com.bankguard.database;
 // ============================================================
 
 // I import these classes to connect to SQLite,
-// execute my schema and upgrade older databases.
+// create my tables and upgrade older databases.
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,6 +32,10 @@ public class DatabaseManager {
     private static final String STATUS_MIGRATION_FILE =
             "/sql/migrations/add_status.sql";
 
+    // I use this SQL file to create my audit trail table.
+    private static final String AUDIT_MIGRATION_FILE =
+            "/sql/migrations/add_audit_logs.sql";
+
     private static final String ADD_USER_FILE =
             "/sql/users/add_user.sql";
 
@@ -52,15 +56,15 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
-        // I enable foreign keys so that I cannot assign
-        // risks to employees who do not exist.
+        // I enable foreign keys so that relationships
+        // between my database tables are enforced.
         try (Statement stmt = connection.createStatement()) {
 
             stmt.execute("PRAGMA foreign_keys = ON");
 
         } catch (SQLException e) {
 
-            // I close my connection if setup fails.
+            // I close the connection if setup fails.
             connection.close();
             throw e;
         }
@@ -92,8 +96,7 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
-        // I remove full-line comments because I only
-        // need the SQL instructions when creating tables.
+        // I remove full-line SQL comments.
         for (String line : sqlContent.split("\\R")) {
 
             if (!line.stripLeading().startsWith("--")) {
@@ -102,8 +105,7 @@ public class DatabaseManager {
             }
         }
 
-        // My current schema has two simple CREATE TABLE
-        // statements, so I separate them at semicolons.
+        // I separate my SQL statements at semicolons.
         sqlStatements = cleanSql.toString().split(";");
 
         try (Statement stmt = conn.createStatement()) {
@@ -132,12 +134,12 @@ public class DatabaseManager {
 
         // ========== INITIALISATION ==========
 
-        // I assume the status column is missing.
         statusExists = false;
 
         // ========== PROCESSING ==========
 
-        // I check which columns already exist.
+        // I check whether the risks table already
+        // contains the status column.
         try (Statement stmt = conn.createStatement();
              ResultSet results =
                      stmt.executeQuery("PRAGMA table_info(risks)")) {
@@ -153,7 +155,7 @@ public class DatabaseManager {
             }
         }
 
-        // I only add status if it doesn't exist.
+        // I only add the column when it is missing.
         // This protects my previously saved risk records.
         if (!statusExists) {
 
@@ -167,7 +169,59 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 5. PREPARING MY DATABASE
+    // 5. CREATING MY AUDIT TRAIL TABLE - v0.9
+    // ========================================================
+
+    private static void ensureAuditTable(Connection conn)
+            throws SQLException, IOException {
+
+        // ========== DECLARATIONS ==========
+
+        String sqlContent;
+        String[] sqlStatements;
+        StringBuilder cleanSql;
+
+        // ========== INITIALISATION ==========
+
+        // I load the SQL file that defines my audit table.
+        sqlContent = SqlLoader.loadSql(AUDIT_MIGRATION_FILE);
+
+        cleanSql = new StringBuilder();
+
+        // ========== PROCESSING ==========
+
+        // I remove comments so SQLite only receives
+        // the SQL instructions.
+        for (String line : sqlContent.split("\\R")) {
+
+            if (!line.stripLeading().startsWith("--")) {
+
+                cleanSql.append(line).append("\n");
+            }
+        }
+
+        // My migration contains CREATE TABLE and
+        // CREATE INDEX statements.
+        // I execute each statement separately.
+        sqlStatements = cleanSql.toString().split(";");
+
+        try (Statement stmt = conn.createStatement()) {
+
+            for (String sql : sqlStatements) {
+
+                if (!sql.isBlank()) {
+
+                    stmt.execute(sql);
+                }
+            }
+        }
+
+        // I use CREATE TABLE IF NOT EXISTS in my SQL file,
+        // so existing audit records are not deleted.
+    }
+
+    // ========================================================
+    // 6. PREPARING MY DATABASE
     // ========================================================
 
     public boolean createTables() {
@@ -180,13 +234,16 @@ public class DatabaseManager {
 
         try (Connection conn = connect()) {
 
-            // I load my database tables from schema.sql.
+            // I create my original database tables.
             loadSchema(conn);
 
-            // I update older databases when necessary.
+            // I upgrade older databases when needed.
             ensureStatusColumn(conn);
 
-            // I load my employee SQL instruction.
+            // I create the audit_logs table for v0.9.
+            ensureAuditTable(conn);
+
+            // I load my existing employee SQL instruction.
             addUserSql = SqlLoader.loadSql(ADD_USER_FILE);
 
             // I add my fictional employee if needed.

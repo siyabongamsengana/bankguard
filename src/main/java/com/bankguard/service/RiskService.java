@@ -5,8 +5,9 @@ package com.bankguard.service;
 // IMPORTS
 // ============================================================
 
-// I import my repositories so I can apply my risk
-// management rules before changing database records.
+// I import my repositories and risk model.
+// I use these classes to manage risks and validate
+// information before changing my SQLite database.
 
 import com.bankguard.model.Risk;
 import com.bankguard.repository.RiskRepository;
@@ -22,11 +23,11 @@ public class RiskService {
     // 1. DECLARATIONS
     // ========================================================
 
-    // I need both repositories to manage risks
-    // and confirm that their owners exist.
+    // I use my risk repository to manage risk records.
     private final RiskRepository riskRepository;
-    private final EmployeeRepository employeeRepository;
 
+    // I use my employee repository to verify employees.
+    private final EmployeeRepository employeeRepository;
 
     // ========================================================
     // 2. INITIALISATION
@@ -34,10 +35,10 @@ public class RiskService {
 
     public RiskService() {
 
+        // I initialise both repositories.
         riskRepository = new RiskRepository();
         employeeRepository = new EmployeeRepository();
     }
-
 
     // ========================================================
     // 3. REGISTERING A NEW RISK
@@ -50,9 +51,10 @@ public class RiskService {
             int impact,
             int ownerId) {
 
-        // ========== VALIDATING REQUIRED INFORMATION ==========
+        // ========== VALIDATION ==========
 
-        // I don't want incomplete risks in my register.
+        // I do not allow risks without a title
+        // or description.
         if (title == null || title.isBlank()
                 || description == null
                 || description.isBlank()) {
@@ -60,44 +62,37 @@ public class RiskService {
             return "Risk name and description are required.";
         }
 
-
-        // ========== VALIDATING MY RISK RATINGS ==========
-
-        // I only allow ratings between 1 and 5.
+        // I only allow risk ratings between 1 and 5.
         if (likelihood < 1 || likelihood > 5
                 || impact < 1 || impact > 5) {
 
             return "Likelihood and impact must be 1 to 5.";
         }
 
-
-        // ========== VALIDATING MY RISK OWNER ==========
-
-        // I only accept positive employee IDs.
+        // I require a positive risk owner ID.
         if (ownerId <= 0) {
 
             return "Invalid risk owner ID.";
         }
 
-
         // ========== PROCESSING ==========
 
         try {
 
-            // I check that the selected employee exists.
+            // I check whether the selected owner exists.
             if (!employeeRepository.employeeExists(ownerId)) {
 
                 return "Risk owner not found. "
                         + "Choose a registered employee.";
             }
 
-            // I also check whether this title already exists.
-            if (riskRepository.riskExists(title)) {
+            // I reject duplicate risk titles.
+            if (riskRepository.riskExists(title.trim())) {
 
                 return "A risk with this name already exists.";
             }
 
-            // I save the risk with its selected owner.
+            // I save the risk with its selected employee.
             riskRepository.saveRisk(
                     title.trim(),
                     description.trim(),
@@ -105,7 +100,6 @@ public class RiskService {
                     impact,
                     ownerId
             );
-
 
             // ========== OUTPUT ==========
 
@@ -118,42 +112,48 @@ public class RiskService {
         }
     }
 
-
     // ========================================================
-    // 4. VIEWING MY REGISTERED RISKS
+    // 4. VIEWING REGISTERED RISKS
     // ========================================================
 
     public List<Risk> getAllRisks()
             throws SQLException, IOException {
 
+        // I retrieve my risk register from SQLite.
         return riskRepository.findAllRisks();
     }
 
-
     // ========================================================
-    // 5. UPDATING MY RISK STATUS
+    // 5. UPDATING RISK STATUS WITH ACCOUNTABILITY
     // ========================================================
 
     public String changeRiskStatus(
-            int riskId, String newStatus) {
+            int riskId,
+            String newStatus,
+            int changedBy) {
 
         // ========== DECLARATIONS ==========
 
         String validStatus;
         int rowsUpdated;
 
-
         // ========== INITIALISATION ==========
 
         validStatus = null;
         rowsUpdated = 0;
 
-
         // ========== VALIDATION ==========
 
+        // I check whether a valid risk ID was supplied.
         if (riskId <= 0) {
 
             return "Invalid risk ID.";
+        }
+
+        // I require an employee ID for accountability.
+        if (changedBy <= 0) {
+
+            return "Invalid acting employee ID.";
         }
 
         // I check whether BankGuard supports the status.
@@ -183,89 +183,139 @@ public class RiskService {
             return "Invalid risk status.";
         }
 
-
         // ========== PROCESSING ==========
 
         try {
 
-            rowsUpdated = riskRepository.updateStatus(
-                    riskId, validStatus);
+            // I check that the person reporting the change
+            // has an employee record in my database.
+            if (!employeeRepository.employeeExists(changedBy)) {
 
+                return "Acting employee not found. "
+                        + "Choose a registered employee.";
+            }
+
+            // I update the risk status.
+            // My repository also records the audit evidence
+            // within the same database transaction.
+            rowsUpdated = riskRepository.updateStatus(
+                    riskId,
+                    validStatus,
+                    changedBy
+            );
 
             // ========== OUTPUT ==========
 
             if (rowsUpdated > 0) {
 
-                return "Risk status updated to: " + validStatus;
+                return "Risk status updated to: "
+                        + validStatus
+                        + ". Audit record saved.";
             }
 
-            return "Risk not found. Check the risk ID.";
+            // My repository returns zero when the risk
+            // does not exist or its status is unchanged.
+            return "No change made. Risk not found "
+                    + "or status is already " + validStatus + ".";
 
         } catch (SQLException | IOException e) {
 
-            return "Status update failed: " + e.getMessage();
+            return "Status update failed: "
+                    + e.getMessage();
+
+        } catch (IllegalArgumentException e) {
+
+            return "Status update rejected: "
+                    + e.getMessage();
         }
     }
 
-
     // ========================================================
-    // 6. CHANGING MY RISK OWNER
+    // 6. CHANGING RISK OWNERSHIP WITH ACCOUNTABILITY
     // ========================================================
 
-    public String changeRiskOwner(int riskId, int employeeId) {
+    public String changeRiskOwner(
+            int riskId,
+            int employeeId,
+            int changedBy) {
 
         // ========== DECLARATIONS ==========
 
         int rowsUpdated;
 
-
         // ========== INITIALISATION ==========
 
         rowsUpdated = 0;
 
-
         // ========== VALIDATION ==========
 
-        // I need valid IDs for both the risk and employee.
+        // I check that the risk ID is valid.
         if (riskId <= 0) {
 
             return "Invalid risk ID.";
         }
 
+        // I check that the new owner ID is valid.
         if (employeeId <= 0) {
 
-            return "Invalid employee ID.";
+            return "Invalid new owner ID.";
         }
 
+        // I require an employee ID for the person
+        // who reports making the change.
+        if (changedBy <= 0) {
+
+            return "Invalid acting employee ID.";
+        }
 
         // ========== PROCESSING ==========
 
         try {
 
-            // I check whether the new owner exists.
+            // I confirm that the new risk owner exists.
             if (!employeeRepository.employeeExists(employeeId)) {
 
-                return "Employee not found. "
+                return "New risk owner not found. "
                         + "Register the employee first.";
             }
 
-            // I update the employee responsible for this risk.
-            rowsUpdated = riskRepository.updateRiskOwner(
-                    riskId, employeeId);
+            // I confirm that the acting employee exists.
+            if (!employeeRepository.employeeExists(changedBy)) {
 
+                return "Acting employee not found. "
+                        + "Choose a registered employee.";
+            }
+
+            // I update the risk owner.
+            // My repository also records the old owner,
+            // the new owner and the acting employee.
+            rowsUpdated = riskRepository.updateRiskOwner(
+                    riskId,
+                    employeeId,
+                    changedBy
+            );
 
             // ========== OUTPUT ==========
 
             if (rowsUpdated > 0) {
 
-                return "Risk owner updated successfully!";
+                return "Risk owner updated successfully! "
+                        + "Audit record saved.";
             }
 
-            return "Risk not found. Check the risk ID.";
+            // A zero result means the risk was not found
+            // or the owner was already assigned.
+            return "No change made. Risk not found "
+                    + "or employee is already the owner.";
 
         } catch (SQLException | IOException e) {
 
             return "Risk owner update failed: "
+                    + e.getMessage();
+
+        } catch (IllegalArgumentException e) {
+
+            return "Risk owner update rejected: "
                     + e.getMessage();
         }
     }
