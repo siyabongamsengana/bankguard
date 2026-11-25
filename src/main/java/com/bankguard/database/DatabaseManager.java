@@ -6,7 +6,7 @@ package com.bankguard.database;
 // ============================================================
 
 // I import these classes to connect to SQLite,
-// create my tables and upgrade older databases.
+// create tables and upgrade my existing database.
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,17 +25,23 @@ public class DatabaseManager {
     private static final String DB_URL =
             "jdbc:sqlite:bankguard.db";
 
-    // I keep the locations of my SQL files here.
+    // I keep the location of my original database schema.
     private static final String SCHEMA_FILE =
             "/sql/schema.sql";
 
+    // I keep the location of my status migration.
     private static final String STATUS_MIGRATION_FILE =
             "/sql/migrations/add_status.sql";
 
-    // I use this SQL file to create my audit trail table.
+    // I keep the location of my audit trail migration.
     private static final String AUDIT_MIGRATION_FILE =
             "/sql/migrations/add_audit_logs.sql";
 
+    // I use this migration for my new GRC project tables.
+    private static final String PROJECT_MIGRATION_FILE =
+            "/sql/migrations/add_grc_projects.sql";
+
+    // I keep the location of my original employee query.
     private static final String ADD_USER_FILE =
             "/sql/users/add_user.sql";
 
@@ -56,8 +62,8 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
-        // I enable foreign keys so that relationships
-        // between my database tables are enforced.
+        // I enable foreign keys so SQLite can enforce
+        // relationships between my database records.
         try (Statement stmt = connection.createStatement()) {
 
             stmt.execute("PRAGMA foreign_keys = ON");
@@ -75,10 +81,12 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 3. LOADING MY DATABASE SCHEMA
+    // 3. EXECUTING SQL FILES WITH MULTIPLE STATEMENTS
     // ========================================================
 
-    private static void loadSchema(Connection conn)
+    private static void executeSqlFile(
+            Connection conn,
+            String filePath)
             throws SQLException, IOException {
 
         // ========== DECLARATIONS ==========
@@ -89,14 +97,15 @@ public class DatabaseManager {
 
         // ========== INITIALISATION ==========
 
-        // I read the table definitions from schema.sql.
-        sqlContent = SqlLoader.loadSql(SCHEMA_FILE);
+        // I read the SQL instructions from my resource file.
+        sqlContent = SqlLoader.loadSql(filePath);
 
         cleanSql = new StringBuilder();
 
         // ========== PROCESSING ==========
 
-        // I remove full-line SQL comments.
+        // I remove full-line SQL comments before executing
+        // my table creation and migration statements.
         for (String line : sqlContent.split("\\R")) {
 
             if (!line.stripLeading().startsWith("--")) {
@@ -105,7 +114,9 @@ public class DatabaseManager {
             }
         }
 
-        // I separate my SQL statements at semicolons.
+        // My current schema and migrations use simple
+        // SQL statements separated by semicolons.
+        // I execute each one separately.
         sqlStatements = cleanSql.toString().split(";");
 
         try (Statement stmt = conn.createStatement()) {
@@ -121,7 +132,19 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 4. UPGRADING MY EXISTING DATABASE
+    // 4. LOADING MY EXISTING DATABASE SCHEMA
+    // ========================================================
+
+    private static void loadSchema(Connection conn)
+            throws SQLException, IOException {
+
+        // I create the original BankGuard tables.
+        // IF NOT EXISTS protects existing records.
+        executeSqlFile(conn, SCHEMA_FILE);
+    }
+
+    // ========================================================
+    // 5. UPGRADING OLDER RISK RECORDS
     // ========================================================
 
     private static void ensureStatusColumn(Connection conn)
@@ -138,8 +161,7 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
-        // I check whether the risks table already
-        // contains the status column.
+        // I check if the status column already exists.
         try (Statement stmt = conn.createStatement();
              ResultSet results =
                      stmt.executeQuery("PRAGMA table_info(risks)")) {
@@ -155,8 +177,7 @@ public class DatabaseManager {
             }
         }
 
-        // I only add the column when it is missing.
-        // This protects my previously saved risk records.
+        // I add the column only when it is missing.
         if (!statusExists) {
 
             sql = SqlLoader.loadSql(STATUS_MIGRATION_FILE);
@@ -169,59 +190,34 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 5. CREATING MY AUDIT TRAIL TABLE - v0.9
+    // 6. CREATING MY AUDIT TRAIL TABLE
     // ========================================================
 
     private static void ensureAuditTable(Connection conn)
             throws SQLException, IOException {
 
-        // ========== DECLARATIONS ==========
-
-        String sqlContent;
-        String[] sqlStatements;
-        StringBuilder cleanSql;
-
-        // ========== INITIALISATION ==========
-
-        // I load the SQL file that defines my audit table.
-        sqlContent = SqlLoader.loadSql(AUDIT_MIGRATION_FILE);
-
-        cleanSql = new StringBuilder();
-
-        // ========== PROCESSING ==========
-
-        // I remove comments so SQLite only receives
-        // the SQL instructions.
-        for (String line : sqlContent.split("\\R")) {
-
-            if (!line.stripLeading().startsWith("--")) {
-
-                cleanSql.append(line).append("\n");
-            }
-        }
-
-        // My migration contains CREATE TABLE and
-        // CREATE INDEX statements.
-        // I execute each statement separately.
-        sqlStatements = cleanSql.toString().split(";");
-
-        try (Statement stmt = conn.createStatement()) {
-
-            for (String sql : sqlStatements) {
-
-                if (!sql.isBlank()) {
-
-                    stmt.execute(sql);
-                }
-            }
-        }
-
-        // I use CREATE TABLE IF NOT EXISTS in my SQL file,
-        // so existing audit records are not deleted.
+        // I run my existing audit trail migration.
+        // This preserves the audit functionality from v0.9.
+        executeSqlFile(conn, AUDIT_MIGRATION_FILE);
     }
 
     // ========================================================
-    // 6. PREPARING MY DATABASE
+    // 7. CREATING MY GRC PROJECT TABLES - v1.0
+    // ========================================================
+
+    private static void ensureProjectTables(Connection conn)
+            throws SQLException, IOException {
+
+        // I load my GRC project migration.
+        // It creates the project and task tables.
+
+        // I use CREATE TABLE IF NOT EXISTS so
+        // previously saved projects are protected.
+        executeSqlFile(conn, PROJECT_MIGRATION_FILE);
+    }
+
+    // ========================================================
+    // 8. PREPARING MY DATABASE
     // ========================================================
 
     public boolean createTables() {
@@ -234,19 +230,22 @@ public class DatabaseManager {
 
         try (Connection conn = connect()) {
 
-            // I create my original database tables.
+            // I create my original BankGuard tables.
             loadSchema(conn);
 
-            // I upgrade older databases when needed.
+            // I maintain compatibility with older records.
             ensureStatusColumn(conn);
 
-            // I create the audit_logs table for v0.9.
+            // I initialise my audit trail tables.
             ensureAuditTable(conn);
 
-            // I load my existing employee SQL instruction.
+            // I create my new GRC project and task tables.
+            ensureProjectTables(conn);
+
+            // I load my original employee instruction.
             addUserSql = SqlLoader.loadSql(ADD_USER_FILE);
 
-            // I add my fictional employee if needed.
+            // I add my fictional employee if required.
             try (Statement stmt = conn.createStatement()) {
 
                 stmt.executeUpdate(addUserSql);
@@ -261,7 +260,7 @@ public class DatabaseManager {
 
         } catch (SQLException | IOException e) {
 
-            // I display the reason if setup fails.
+            // I display an error if database setup fails.
             System.out.println(
                     "Database error: " + e.getMessage());
 

@@ -2,14 +2,21 @@
 package com.bankguard.ui;
 
 // ============================================================
+// BANKGUARD v1.0 - MAIN CONSOLE MENU
+// ============================================================
+
+// ============================================================
 // IMPORTS
 // ============================================================
 
 // I import my models so I can display information
-// about risks, employees and audit records.
+// about employees, risks and audit records.
 
-// I import my services to apply my business rules
-// before information is saved or retrieved.
+// I import my services to apply business rules
+// before retrieving or changing database information.
+
+// I also use ProjectWorkspaceMenu to manage
+// my practical GRC subprojects.
 
 import com.bankguard.model.Risk;
 import com.bankguard.model.Employee;
@@ -30,14 +37,17 @@ public class ConsoleMenu {
     // 1. DECLARATIONS
     // ========================================================
 
-    // I use Scanner to receive information from the user.
+    // I use Scanner to receive keyboard input.
     private final Scanner input;
 
     // I use these services to manage my bank's
-    // risks, employees and audit records.
+    // risks, employees and audit history.
     private final RiskService riskService;
     private final EmployeeService employeeService;
     private final AuditService auditService;
+
+    // I use this menu for my practical GRC projects.
+    private final ProjectWorkspaceMenu projectWorkspaceMenu;
 
     // ========================================================
     // 2. INITIALISATION
@@ -45,18 +55,21 @@ public class ConsoleMenu {
 
     public ConsoleMenu() {
 
-        // I prepare the tools required by my application.
+        // I prepare the main Scanner for my application.
         input = new Scanner(System.in);
 
+        // I initialise my risk, employee and audit services.
         riskService = new RiskService();
         employeeService = new EmployeeService();
-
-        // I initialise my audit service for v0.9.
         auditService = new AuditService();
+
+        // I connect the project workspace to this menu.
+        // Both menus share the same Scanner.
+        projectWorkspaceMenu = new ProjectWorkspaceMenu(input);
     }
 
     // ========================================================
-    // 3. STARTING MY MENU
+    // 3. STARTING MY MAIN MENU
     // ========================================================
 
     public void start() {
@@ -75,7 +88,7 @@ public class ConsoleMenu {
         while (running) {
 
             System.out.println(
-                    "\n========== BANKGUARD ==========");
+                    "\n========== BANKGUARD v1.0 ==========");
 
             System.out.println("1. Register a new IT risk");
             System.out.println("2. View registered risks");
@@ -83,12 +96,12 @@ public class ConsoleMenu {
             System.out.println("4. Register an employee");
             System.out.println("5. View employees");
             System.out.println("6. Change risk owner");
-
-            // I add an option to review changes made
-            // to risks in my fictional bank.
             System.out.println("7. View risk audit history");
 
-            System.out.println("8. Exit");
+            // I provide access to my GRC subprojects.
+            System.out.println("8. GRC Project Workspace");
+
+            System.out.println("9. Exit");
 
             System.out.print("\nChoose an option: ");
             choice = input.nextLine().trim();
@@ -111,7 +124,10 @@ public class ConsoleMenu {
 
                 case "7" -> viewAuditHistory();
 
-                case "8" -> {
+                // I open the GRC Project Workspace.
+                case "8" -> projectWorkspaceMenu.start();
+
+                case "9" -> {
 
                     running = false;
 
@@ -126,6 +142,8 @@ public class ConsoleMenu {
 
         // ========== END OF PROGRAM ==========
 
+        // I close my Scanner only when the main
+        // application is finished.
         input.close();
     }
 
@@ -162,16 +180,16 @@ public class ConsoleMenu {
             impact = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I display registered employees before
-            // asking who will own this new risk.
+            // I show registered employees so I can
+            // select an existing risk owner.
             viewEmployees();
 
             System.out.print("\nEnter risk owner ID: ");
             ownerId = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I ask my service to validate and save
-            // the risk in my SQLite database.
+            // I ask my service to validate and
+            // save the new risk.
             result = riskService.registerRisk(
                     riskName,
                     riskDescription,
@@ -205,6 +223,7 @@ public class ConsoleMenu {
 
         try {
 
+            // I retrieve the risks stored in my database.
             risks = riskService.getAllRisks();
 
             System.out.println(
@@ -212,7 +231,9 @@ public class ConsoleMenu {
 
             if (risks.isEmpty()) {
 
-                System.out.println("No risks registered yet.");
+                System.out.println(
+                        "No risks registered yet.");
+
                 return;
             }
 
@@ -245,7 +266,8 @@ public class ConsoleMenu {
                         + risk.getRiskScore() + "/25");
 
                 System.out.println(
-                        "Risk Owner: " + risk.getOwnerName());
+                        "Risk Owner: "
+                        + risk.getOwnerName());
 
                 System.out.println(
                         "Status: " + risk.getStatus());
@@ -259,7 +281,7 @@ public class ConsoleMenu {
     }
 
     // ========================================================
-    // 6. UPDATING A RISK STATUS WITH AUDIT EVIDENCE
+    // 6. UPDATING RISK STATUS WITH AUDIT EVIDENCE
     // ========================================================
 
     private void updateRiskStatus() {
@@ -274,13 +296,15 @@ public class ConsoleMenu {
 
         // ========== PROCESSING ==========
 
-        // I display my registered risks so I can
-        // identify the correct record to update.
+        // I show existing risks before selecting
+        // which one needs a status update.
         viewRisks();
 
         try {
 
-            System.out.print("\nEnter the risk ID number: ");
+            System.out.print(
+                    "\nEnter the risk ID number: ");
+
             riskId = Integer.parseInt(
                     input.nextLine().trim());
 
@@ -295,8 +319,7 @@ public class ConsoleMenu {
 
             // ========== VALIDATION ==========
 
-            // I convert the menu choice into a
-            // status supported by my database.
+            // I convert my menu choice into a valid status.
             riskStatus = switch (statusChoice) {
 
                 case "1" -> "Open";
@@ -310,13 +333,14 @@ public class ConsoleMenu {
 
                 System.out.println(
                         "Invalid status selection.");
+
                 return;
             }
 
             // ========== ACCOUNTABILITY ==========
 
-            // I display employees so the person performing
-            // the change can supply their employee ID.
+            // I show employees so the person performing
+            // the change can provide their employee ID.
             viewEmployees();
 
             System.out.print(
@@ -327,8 +351,8 @@ public class ConsoleMenu {
                     input.nextLine().trim());
 
             // I send the acting employee ID to my service.
-            // My service validates the ID, and my repository
-            // records the status change in the audit trail.
+            // My repository saves the status change and
+            // audit record in one database transaction.
             result = riskService.changeRiskStatus(
                     riskId,
                     riskStatus,
@@ -366,7 +390,7 @@ public class ConsoleMenu {
         System.out.print("Employee role: ");
         role = input.nextLine();
 
-        // I validate and save the new employee.
+        // I validate and save the employee information.
         result = employeeService.registerEmployee(
                 name,
                 role
@@ -400,6 +424,7 @@ public class ConsoleMenu {
 
                 System.out.println(
                         "No employees registered.");
+
                 return;
             }
 
@@ -444,8 +469,8 @@ public class ConsoleMenu {
 
         // ========== PROCESSING ==========
 
-        // I display existing risks and employees
-        // so I can select the correct records.
+        // I display risks and employees before
+        // selecting which ownership to change.
         viewRisks();
         viewEmployees();
 
@@ -465,7 +490,7 @@ public class ConsoleMenu {
 
             // ========== ACCOUNTABILITY ==========
 
-            // I ask which employee is reporting
+            // I identify the employee reporting
             // that they performed this change.
             System.out.print(
                     "Enter your employee ID "
@@ -474,9 +499,8 @@ public class ConsoleMenu {
             changedBy = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I pass all three IDs to my risk service.
-            // My repository will update the owner and
-            // create an audit record in one transaction.
+            // I update the risk owner and create
+            // an audit record in the same transaction.
             result = riskService.changeRiskOwner(
                     riskId,
                     newOwnerId,
@@ -495,7 +519,7 @@ public class ConsoleMenu {
     }
 
     // ========================================================
-    // 10. VIEWING A RISK'S AUDIT HISTORY - v0.9
+    // 10. VIEWING MY RISK AUDIT HISTORY
     // ========================================================
 
     private void viewAuditHistory() {
@@ -507,8 +531,8 @@ public class ConsoleMenu {
 
         // ========== PROCESSING ==========
 
-        // I display my risks before asking which
-        // audit history the user wants to review.
+        // I show registered risks before selecting
+        // the risk whose history I want to inspect.
         viewRisks();
 
         try {
@@ -519,17 +543,15 @@ public class ConsoleMenu {
             riskId = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I retrieve all recorded changes for this risk.
+            // I retrieve audit records for this risk.
             auditLogs = auditService.getRiskHistory(riskId);
 
             System.out.println(
                     "\n========== RISK AUDIT HISTORY ==========");
 
-            System.out.println("Risk ID: R-" + riskId);
+            System.out.println(
+                    "Risk ID: R-" + riskId);
 
-            // I explain when no audit records exist.
-            // My system only records supported changes
-            // made after audit logging was introduced.
             if (auditLogs.isEmpty()) {
 
                 System.out.println(
@@ -540,7 +562,6 @@ public class ConsoleMenu {
 
             // ========== OUTPUT ==========
 
-            // I display each recorded change.
             for (AuditLog auditLog : auditLogs) {
 
                 System.out.println(
@@ -590,5 +611,6 @@ public class ConsoleMenu {
         }
     }
 }
+
 
 
