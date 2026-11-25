@@ -274,5 +274,5 @@ Ubuntu Digital Bank is fictional. The application is not affiliated with any rea
 
 *IT in Business Systems Student | Governance, Risk and Compliance | Technology Risk*
 
-**GitHub:** https://github.com/siyabongamsengana/bankguard
-:::
+
+
