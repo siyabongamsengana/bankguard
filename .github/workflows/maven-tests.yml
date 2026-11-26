@@ -1,0 +1,45 @@
+
+# ============================================================
+# BANKGUARD - AUTOMATED TESTING
+# ============================================================
+
+name: BankGuard Automated Tests
+
+# I run the tests when changes are pushed
+# or when someone opens a pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build and Test BankGuard
+    runs-on: ubuntu-latest
+
+    steps:
+      # I download my repository code.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # I prepare Java 17 for BankGuard.
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # I compile BankGuard and run my JUnit tests.
+      - name: Run automated tests
+        run: mvn --batch-mode clean test
+
+      # I keep the test reports even when tests fail.
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bankguard-test-results
+          path: target/surefire-reports/
+          if-no-files-found: warn
