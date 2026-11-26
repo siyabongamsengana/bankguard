@@ -2,6 +2,10 @@
 package com.bankguard.database;
 
 // ============================================================
+// BANKGUARD v1.1 - DATABASE MANAGER
+// ============================================================
+
+// ============================================================
 // IMPORTS
 // ============================================================
 
@@ -37,9 +41,14 @@ public class DatabaseManager {
     private static final String AUDIT_MIGRATION_FILE =
             "/sql/migrations/add_audit_logs.sql";
 
-    // I use this migration for my new GRC project tables.
+    // I use this migration for my GRC project tables.
     private static final String PROJECT_MIGRATION_FILE =
             "/sql/migrations/add_grc_projects.sql";
+
+    // I use this migration to create my control register,
+    // control testing records and evidence register.
+    private static final String CONTROLS_MIGRATION_FILE =
+            "/sql/migrations/add_controls_and_evidence.sql";
 
     // I keep the location of my original employee query.
     private static final String ADD_USER_FILE =
@@ -70,7 +79,7 @@ public class DatabaseManager {
 
         } catch (SQLException e) {
 
-            // I close the connection if setup fails.
+            // I close my connection if setup fails.
             connection.close();
             throw e;
         }
@@ -97,15 +106,15 @@ public class DatabaseManager {
 
         // ========== INITIALISATION ==========
 
-        // I read the SQL instructions from my resource file.
+        // I read my SQL instructions from the resource file.
         sqlContent = SqlLoader.loadSql(filePath);
 
         cleanSql = new StringBuilder();
 
         // ========== PROCESSING ==========
 
-        // I remove full-line SQL comments before executing
-        // my table creation and migration statements.
+        // I remove full-line SQL comments before
+        // executing my database instructions.
         for (String line : sqlContent.split("\\R")) {
 
             if (!line.stripLeading().startsWith("--")) {
@@ -114,11 +123,11 @@ public class DatabaseManager {
             }
         }
 
-        // My current schema and migrations use simple
-        // SQL statements separated by semicolons.
-        // I execute each one separately.
+        // My current migrations contain simple SQL
+        // statements separated by semicolons.
         sqlStatements = cleanSql.toString().split(";");
 
+        // I execute each SQL statement separately.
         try (Statement stmt = conn.createStatement()) {
 
             for (String sql : sqlStatements) {
@@ -132,13 +141,13 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 4. LOADING MY EXISTING DATABASE SCHEMA
+    // 4. LOADING MY ORIGINAL DATABASE SCHEMA
     // ========================================================
 
     private static void loadSchema(Connection conn)
             throws SQLException, IOException {
 
-        // I create the original BankGuard tables.
+        // I create my original users and risks tables.
         // IF NOT EXISTS protects existing records.
         executeSqlFile(conn, SCHEMA_FILE);
     }
@@ -157,11 +166,12 @@ public class DatabaseManager {
 
         // ========== INITIALISATION ==========
 
+        // I initially assume the status column is missing.
         statusExists = false;
 
         // ========== PROCESSING ==========
 
-        // I check if the status column already exists.
+        // I check which columns exist in my risks table.
         try (Statement stmt = conn.createStatement();
              ResultSet results =
                      stmt.executeQuery("PRAGMA table_info(risks)")) {
@@ -177,7 +187,8 @@ public class DatabaseManager {
             }
         }
 
-        // I add the column only when it is missing.
+        // I add the status column only if it is missing.
+        // This helps preserve my existing risk records.
         if (!statusExists) {
 
             sql = SqlLoader.loadSql(STATUS_MIGRATION_FILE);
@@ -190,14 +201,14 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 6. CREATING MY AUDIT TRAIL TABLE
+    // 6. CREATING MY AUDIT TRAIL TABLE - v0.9
     // ========================================================
 
     private static void ensureAuditTable(Connection conn)
             throws SQLException, IOException {
 
-        // I run my existing audit trail migration.
-        // This preserves the audit functionality from v0.9.
+        // I execute my existing audit trail migration.
+        // This keeps my risk change history available.
         executeSqlFile(conn, AUDIT_MIGRATION_FILE);
     }
 
@@ -208,16 +219,35 @@ public class DatabaseManager {
     private static void ensureProjectTables(Connection conn)
             throws SQLException, IOException {
 
-        // I load my GRC project migration.
-        // It creates the project and task tables.
-
-        // I use CREATE TABLE IF NOT EXISTS so
-        // previously saved projects are protected.
+        // I create the tables used for GRC projects
+        // and their assessment tasks.
         executeSqlFile(conn, PROJECT_MIGRATION_FILE);
     }
 
     // ========================================================
-    // 8. PREPARING MY DATABASE
+    // 8. CREATING MY CONTROL AND EVIDENCE TABLES - v1.1
+    // ========================================================
+
+    private static void ensureControlTables(Connection conn)
+            throws SQLException, IOException {
+
+        // ========== PROCESSING ==========
+
+        // I load my new control and evidence migration.
+
+        // This migration creates:
+        // 1. grc_controls
+        // 2. grc_control_tests
+        // 3. grc_evidence
+
+        // I use CREATE TABLE IF NOT EXISTS so
+        // existing tables are not recreated.
+
+        executeSqlFile(conn, CONTROLS_MIGRATION_FILE);
+    }
+
+    // ========================================================
+    // 9. PREPARING MY DATABASE
     // ========================================================
 
     public boolean createTables() {
@@ -233,16 +263,20 @@ public class DatabaseManager {
             // I create my original BankGuard tables.
             loadSchema(conn);
 
-            // I maintain compatibility with older records.
+            // I maintain compatibility with older risk records.
             ensureStatusColumn(conn);
 
-            // I initialise my audit trail tables.
+            // I prepare my audit trail tables.
             ensureAuditTable(conn);
 
-            // I create my new GRC project and task tables.
+            // I prepare my GRC project and task tables.
             ensureProjectTables(conn);
 
-            // I load my original employee instruction.
+            // I prepare my new control register,
+            // control testing and evidence tables.
+            ensureControlTables(conn);
+
+            // I load my original employee SQL instruction.
             addUserSql = SqlLoader.loadSql(ADD_USER_FILE);
 
             // I add my fictional employee if required.
@@ -260,7 +294,7 @@ public class DatabaseManager {
 
         } catch (SQLException | IOException e) {
 
-            // I display an error if database setup fails.
+            // I display the reason if setup fails.
             System.out.println(
                     "Database error: " + e.getMessage());
 
