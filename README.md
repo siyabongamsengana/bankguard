@@ -1,155 +1,134 @@
 # BankGuard — GRC Management & Practical Learning Platform
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Active Development  
-**Focus:** Governance, Risk & Compliance (GRC) | IT Risk Management | Banking | Business Systems
+**Focus:** Governance, Risk & Compliance (GRC) | IT Risk | Banking | Business Systems
 
 ## About BankGuard
 
-BankGuard is a Java-based Governance, Risk and Compliance (GRC) project developed around Ubuntu Digital Bank, a fictional South African financial institution.
+BankGuard is an independent Java-based Governance, Risk and Compliance (GRC) project developed around Ubuntu Digital Bank, a fictional South African financial institution.
 
-I'm building BankGuard to strengthen my practical understanding of how organisations identify, assess, manage and monitor technology risks while maintaining accountability and supporting auditability.
+I'm building BankGuard to apply my IT in Business Systems knowledge and develop practical skills in identifying, assessing, managing and monitoring technology risks.
 
-As an IT in Business Systems student with a strong interest in GRC within banking, I wanted to go beyond learning concepts from textbooks and online courses.
+The goal is to go beyond theoretical learning by creating a platform where I can practise GRC responsibilities through realistic, simulated banking scenarios.
 
-My goal is to build a system that allows me to practise GRC responsibilities through realistic fictional banking scenarios, document my decisions and develop a stronger understanding of how risk management works in practice.
-
-**BankGuard is both a software development project and a self-directed GRC learning initiative.**
-
----
+BankGuard combines **software development, risk management and practical GRC learning**.
 
 ## Project Objectives
 
-BankGuard has three main objectives:
+The project has three main objectives:
 
-**1. Develop a functional GRC management system**
-
-Build a system that supports IT risk assessments, risk ownership, audit trails, GRC projects and eventually controls, compliance assessments, evidence and remediation management.
-
-**2. Practise real-world GRC responsibilities**
-
-Use simulated banking scenarios to practise identifying risks, evaluating controls, reviewing evidence, documenting findings and preparing recommendations.
-
-**3. Document my professional development**
-
-Maintain a portfolio of completed simulated GRC assessments that demonstrates my analytical thinking, technical knowledge, decision-making and willingness to learn independently.
+1. **Build a functional GRC management system** that supports risk management, accountability, controls, evidence and compliance activities.
+2. **Practise GRC responsibilities** by completing simulated banking risk assessments, control reviews and compliance projects.
+3. **Document my development** through practical projects that demonstrate my analytical thinking, technical knowledge and understanding of GRC processes.
 
 ---
 
-## Current Features — v1.0
+## Current Features — v1.1
 
 ### 1. IT Risk Register
 
-- Register IT risks with a title and description.
-- Assess likelihood and impact using a 1–5 scale.
+- Register and describe IT risks.
+- Assess likelihood and impact on a 1–5 scale.
 - Automatically calculate risk scores.
-- Prevent duplicate risk titles.
-- View registered risks, their owners and statuses.
+- Assign registered employees as risk owners.
 - Update risk statuses.
+- View and monitor registered risks.
 
 **Risk Score = Likelihood × Impact**
 
-For example, a risk with likelihood 3 and impact 5 receives a score of 15/25.
+### 2. Employee Management & Accountability
 
-### 2. Employee Management & Risk Ownership
-
-- Register employees with names and roles.
+- Register employees and their roles.
 - View employee records.
-- Assign registered employees as risk owners.
-- Transfer risk ownership.
-- Prevent ownership assignments to employees who do not exist.
+- Assign and change risk ownership.
+- Validate employee IDs before assigning responsibilities.
 
-This introduces accountability by connecting identified risks to responsible employees.
-
-### 3. Audit Trails
+### 3. Risk Audit Trails
 
 - Record risk ownership changes.
 - Record risk status changes.
-- Preserve previous and new values.
-- Record timestamps.
-- Record the employee ID supplied by the person performing the change.
+- Preserve previous and updated values.
+- Record timestamps and reported acting employee IDs.
 - View audit history for individual risks.
+- Use database transactions to keep risk updates and corresponding audit records consistent.
 
-Risk updates and their corresponding audit records are processed using database transactions.
+### 4. GRC Project Workspace — v1.0
 
-The system is designed to roll back the risk update if the audit insert fails.
+- Create and manage GRC projects.
+- Categorise different assessment projects.
+- Add tasks to individual projects.
+- Track task statuses.
+- Calculate project completion percentages.
+- Store projects and tasks in SQLite.
 
-**Limitation:** Employee IDs are currently self-reported because authentication has not yet been implemented.
+This workspace helps organise independent GRC assessments.
 
-### 4. GRC Project Workspace — New in v1.0
+### 5. Control Register — New in v1.1
 
-BankGuard now includes a dedicated workspace for managing practical GRC subprojects.
+- Register security and IT controls.
+- Link controls to existing risks.
+- Record control objectives.
+- Classify controls as Preventive, Detective or Corrective.
+- Assign registered employees as control owners.
+- Record operating frequency and control status.
+- View all controls or filter them by risk.
 
-Current functionality includes:
+### 6. Control Testing — New in v1.1
 
-- Create GRC projects.
-- Categorise projects by GRC discipline.
-- Store project descriptions and objectives.
-- Create assessment tasks within projects.
-- View tasks linked to individual projects.
-- Update task statuses.
-- Automatically calculate task completion percentages.
-- Store project and task information in SQLite.
+- Record control-testing procedures.
+- Define assessment periods.
+- Document observations and test results.
+- Record assessment conclusions.
+- Link tests to registered controls.
+- View previous control assessments.
 
-This provides the foundation for completing independent GRC assessments within BankGuard.
+Supported conclusions:
 
-**Project progress currently measures task completion, not the quality or accuracy of an assessment.**
+- Not Tested
+- Effective
+- Ineffective
+- Inconclusive
+
+**Current limitation:** Conclusions are recorded assessments, not independently approved audit findings. The system does not yet require evidence review before recording a conclusion.
+
+### 7. Evidence Register — New in v1.1
+
+- Register evidence references linked to control tests.
+- Document evidence names, sources and descriptions.
+- Store document references for assessment records.
+- Retrieve evidence associated with a particular control test.
+
+The current version records evidence descriptions and references. It does not upload, verify or securely store actual evidence files.
 
 ---
 
-## Planned Practical GRC Subprojects
+## Practical Banking GRC Projects
 
-I intend to use BankGuard to complete several realistic banking GRC assessments.
+BankGuard is being developed to support realistic simulations involving Ubuntu Digital Bank.
 
-### Project 01 — Customer Account Takeover Risk Assessment
+### Customer Account Takeover Risk Assessment
 
-Investigate the risk of unauthorised customer account access.
+Assess the risk of unauthorised customer account access, including MFA, suspicious-login monitoring and account recovery controls.
 
-Planned activities include:
+### PCI DSS Gap Analysis
 
-- Identifying threats and vulnerabilities.
-- Reviewing MFA and login monitoring controls.
-- Assessing inherent risk.
-- Evaluating simulated control-testing evidence.
-- Identifying control weaknesses.
-- Assessing residual risk.
-- Documenting recommendations.
+Review selected PCI DSS requirements against a fictional payment environment, identify compliance gaps and document recommendations.
 
-### Project 02 — PCI DSS Gap Analysis
+### Security Control Effectiveness Assessment
 
-Assess selected PCI DSS requirements against a fictional banking payment environment.
+Examine simulated evidence, evaluate security controls, identify weaknesses and document control-testing conclusions.
 
-Planned activities include:
+### Future Assessment Areas
 
-- Defining the assessment scope.
-- Identifying applicable requirements.
-- Reviewing simulated control evidence.
-- Documenting compliance gaps.
-- Recommending corrective actions.
-- Preparing a gap analysis report.
+- Third-party technology risk
+- Phishing control effectiveness
+- AI governance
+- Information security compliance
+- IT risk and control self-assessments
+- Remediation management
 
-### Project 03 — Security Control Effectiveness Assessment
-
-Evaluate whether selected information security controls are appropriately designed and operating effectively.
-
-Planned activities include:
-
-- Defining control objectives.
-- Preparing test procedures.
-- Reviewing simulated evidence.
-- Documenting exceptions.
-- Assessing control effectiveness.
-- Preparing remediation recommendations.
-
-### Other Planned Projects
-
-- Third-party technology risk assessments.
-- AI governance assessments.
-- Access management reviews.
-- IT risk and control self-assessments.
-- Risk treatment and remediation tracking.
-
-These are intended learning projects. Their inclusion here does not mean that all assessments have been completed.
+These are intended practical learning activities. Not all assessments have been completed.
 
 ---
 
@@ -157,192 +136,127 @@ These are intended learning projects. Their inclusion here does not mean that al
 
 | Technology | Purpose |
 |---|---|
-| Java | Core application and business logic |
+| Java | Application logic |
 | SQLite | Local database |
+| SQL | Queries, records and migrations |
 | JDBC | Database connectivity |
-| SQL | Queries and database migrations |
-| Maven | Dependency and build management |
-| Git and GitHub | Version control |
+| Maven | Build and dependency management |
+| Git & GitHub | Version control |
 | Visual Studio Code | Development environment |
 
-### Application Architecture
+### Architecture
 
-BankGuard uses a layered Java architecture.
+BankGuard follows a layered architecture:
 
-```text
-src/main/
-├── java/com/bankguard/
-│   ├── App.java
-│   ├── database/
-│   │   ├── DatabaseManager.java
-│   │   └── SqlLoader.java
-│   ├── model/
-│   │   ├── Risk.java
-│   │   ├── Employee.java
-│   │   ├── AuditLog.java
-│   │   ├── GrcProject.java
-│   │   └── ProjectTask.java
-│   ├── repository/
-│   │   ├── RiskRepository.java
-│   │   ├── EmployeeRepository.java
-│   │   ├── AuditRepository.java
-│   │   ├── GrcProjectRepository.java
-│   │   └── ProjectTaskRepository.java
-│   ├── service/
-│   │   ├── RiskService.java
-│   │   ├── EmployeeService.java
-│   │   ├── AuditService.java
-│   │   ├── GrcProjectService.java
-│   │   └── ProjectTaskService.java
-│   └── ui/
-│       ├── ConsoleMenu.java
-│       └── ProjectWorkspaceMenu.java
-└── resources/sql/
-    ├── schema.sql
-    ├── migrations/
-    ├── risks/
-    ├── users/
-    ├── audit/
-    ├── projects/
-    └── tasks/
-```
+**Console UI → Services → Repositories → SQLite Database**
 
-**Models** represent application data.
+- **Models:** Represent risks, employees, projects, controls, tests and evidence.
+- **Services:** Apply validation and business rules.
+- **Repositories:** Manage database operations.
+- **SQL Resources:** Separate database queries from Java code.
+- **Console UI:** Provides access to the application's functions.
 
-**Repositories** manage database interactions.
-
-**Services** apply business rules and validation.
-
-**UI classes** manage interactions through the current console interface.
-
-**Database classes** handle connections, schema creation and migrations.
+This structure helps make the code easier to maintain and extend.
 
 ---
 
-## How to Run BankGuard
+## Running BankGuard
 
 ### Requirements
 
 - Java 17 or newer
 - Apache Maven
-- A Java-enabled IDE, such as Visual Studio Code
+- A Java development environment
 
 ### Clone the repository
 
-```bash
-git clone https://github.com/siyabongamsengana/bankguard.git
-cd bankguard
-```
+`git clone https://github.com/siyabongamsengana/bankguard.git`
 
-### Compile the application
+Open the project folder:
 
-```bash
-mvn clean compile
-```
+`cd bankguard`
 
-### Run the application
+### Compile
+
+`mvn clean compile`
+
+### Run
 
 Open `src/main/java/com/bankguard/App.java` in your IDE and run its `main` method.
 
-BankGuard currently uses a console-based interface.
-
-The local SQLite database is excluded from version control.
+BankGuard currently uses a console interface and a local SQLite database.
 
 ---
 
 ## Development Roadmap
 
-| Version | Development Focus | Status |
+| Version | Focus | Status |
 |---|---|---|
-| v0.5 | Basic IT risk registration and scoring | Completed |
+| v0.5 | IT risk registration and scoring | Completed |
 | v0.7 | Layered architecture and SQL separation | Completed |
 | v0.8 | Employee management and risk ownership | Completed |
-| v0.9 | Risk audit trails and accountability | Completed |
-| v1.0 | GRC Project Workspace and task management | Implemented |
-| v1.1 | Control register, evidence references and control testing | Planned |
+| v0.9 | Risk audit trails | Completed |
+| v1.0 | GRC Project Workspace | Implemented |
+| v1.1 | Control register, control testing and evidence references | Implemented |
 | v1.2 | Findings and remediation tracking | Planned |
-| v1.3 | Practical banking GRC simulation assignments | Planned |
-| v1.4 | Reporting, assessment feedback and portfolio exports | Planned |
-| Future | Web application with Spring Boot and interactive dashboards | Planned |
+| v1.3 | Practical banking GRC simulations | Planned |
+| v1.4 | Assessment reporting and portfolio exports | Planned |
+| Future | Spring Boot backend and web-based interface | Planned |
 
-### Long-Term Vision
-
-The goal is to transform BankGuard into a browser-based GRC workspace where I can:
-
-- Manage simulated banking risks and controls.
-- Work through independent GRC subprojects.
-- Examine simulated evidence.
-- Record assessment findings and recommendations.
-- Receive structured feedback on my reasoning.
-- Track my development across GRC disciplines.
-- Produce professional assessment reports.
-
-The planned web application will eventually provide dashboards for risks, controls, projects, evidence, findings and learning progress.
+**Version 1.1 has compiled successfully and has been pushed to GitHub. Comprehensive functional and automated testing is still pending.**
 
 ---
 
-## Testing and Validation
+## Future Vision
 
-BankGuard has undergone incremental development and functional testing.
+My long-term goal is to turn BankGuard into a web-based GRC workspace and practical learning environment.
 
-**v0.8 — Risk Ownership:** Six functional tests passed.
+I want the platform to support:
 
-**v0.9 — Audit Trails:** Six functional tests passed, including audit history retrieval and validation of acting employee IDs. A deliberate failure-and-rollback test against the running Java application remains pending.
+- Independent banking GRC assessments.
+- Evidence-based control testing.
+- IT risk management.
+- Compliance gap analyses.
+- Findings and remediation tracking.
+- Structured feedback on assessment decisions.
+- Professional GRC reporting.
+- Personal learning progress tracking.
 
-**v1.0 — GRC Project Workspace:** Maven compilation completed successfully. Full end-to-end functional verification of project creation, task updates and progress tracking should be completed before marking the version fully tested.
-
-Future improvements will include automated unit tests, integration tests and more formal test documentation.
+The goal is to develop both the technical system and the professional reasoning needed for GRC work.
 
 ---
 
-## What I'm Learning Through BankGuard
+## What I'm Learning
 
-This project is helping me develop practical knowledge in:
+Through BankGuard, I'm developing knowledge and skills in:
 
-- IT risk identification and assessment.
-- Risk scoring and prioritisation.
+- IT risk assessment and management.
 - Risk ownership and accountability.
+- Security control design and testing.
+- Evidence documentation.
 - Audit trails and data integrity.
 - Business systems analysis.
-- Database design and validation.
-- GRC project management.
-- Java application architecture.
-- Translating GRC requirements into system functionality.
+- Database design.
+- Java programming.
+- GRC workflows.
+- Technical problem-solving.
 
-As the project develops, I aim to expand into control testing, regulatory compliance, evidence assessment, remediation and management reporting.
-
-I'm also learning that GRC is not simply about recording risks or meeting requirements. It involves understanding the business, evaluating evidence, communicating with stakeholders and supporting informed risk decisions.
+I'm particularly interested in understanding how banks use technology, governance and security controls to manage risk and support responsible decision-making.
 
 ---
 
-## Project Limitations
+## Project Disclaimer
 
-BankGuard is currently an educational, console-based application.
+BankGuard is an independent educational and portfolio project.
 
-It does not yet include:
+Ubuntu Digital Bank is a fictional financial institution. All practical banking scenarios are simulated and do not represent actual banking employment or professional audit engagements.
 
-- User authentication or role-based access control.
-- A web interface.
-- A control register and formal testing workflow.
-- Evidence uploads or document management.
-- Findings and remediation workflows.
-- Production-grade audit-log protection.
-- Automated assessment feedback.
-
-All banking scenarios and records used for practice are fictional or simulated.
-
----
-
-## Disclaimer
-
-BankGuard is an independent educational portfolio project developed for practical learning.
-
-Ubuntu Digital Bank is a fictional institution. The project is not affiliated with TymeBank or any other financial institution.
-
-Simulated GRC assessments completed through BankGuard do not represent professional banking employment, actual compliance audits or independent certification of an organisation.
+The application is not a certified GRC or compliance assessment product.
 
 ---
 
 **Developed by Siyabonga Msengana**
 
 *IT in Business Systems Student | Governance, Risk & Compliance | Technology Risk | Banking*
+
+
