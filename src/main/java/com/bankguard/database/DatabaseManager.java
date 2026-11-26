@@ -25,9 +25,15 @@ public class DatabaseManager {
     // 1. DECLARATIONS
     // ========================================================
 
-    // I keep the location of my SQLite database here.
+    // I keep my normal BankGuard database location here.
+    // This database is used when no test database is set.
     private static final String DB_URL =
             "jdbc:sqlite:bankguard.db";
+
+    // I use this property to allow automated tests
+    // to connect to a separate SQLite database.
+    private static final String DB_URL_PROPERTY =
+            "bankguard.db.url";
 
     // I keep the location of my original database schema.
     private static final String SCHEMA_FILE =
@@ -63,13 +69,33 @@ public class DatabaseManager {
         // ========== DECLARATIONS ==========
 
         Connection connection;
+        String databaseUrl;
 
         // ========== INITIALISATION ==========
 
-        // I open my connection to SQLite.
-        connection = DriverManager.getConnection(DB_URL);
+        // I check whether a separate database URL
+        // has been provided for automated testing.
+        databaseUrl = System.getProperty(
+                DB_URL_PROPERTY,
+                DB_URL
+        );
+
+        // ========== VALIDATION ==========
+
+        // I reject empty database settings to avoid
+        // accidentally connecting to an unexpected file.
+        if (databaseUrl.isBlank()) {
+
+            throw new SQLException(
+                    "Database URL cannot be empty.");
+        }
 
         // ========== PROCESSING ==========
+
+        // I connect to the selected database.
+        // Normal runs use bankguard.db.
+        // Automated tests can use a separate database.
+        connection = DriverManager.getConnection(databaseUrl);
 
         // I enable foreign keys so SQLite can enforce
         // relationships between my database records.
@@ -272,7 +298,7 @@ public class DatabaseManager {
             // I prepare my GRC project and task tables.
             ensureProjectTables(conn);
 
-            // I prepare my new control register,
+            // I prepare my control register,
             // control testing and evidence tables.
             ensureControlTables(conn);
 

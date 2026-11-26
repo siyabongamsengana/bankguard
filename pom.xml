@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- BankGuard Project Information -->
+    <!-- ================================================ -->
+    <!-- BANKGUARD PROJECT INFORMATION -->
+    <!-- ================================================ -->
+
     <groupId>com.bankguard</groupId>
     <artifactId>bankguard</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -16,13 +16,19 @@
 
     <name>BankGuard</name>
 
-    <!-- Java Configuration -->
+    <!-- ================================================ -->
+    <!-- JAVA CONFIGURATION -->
+    <!-- ================================================ -->
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
-    <!-- Project Dependencies -->
+    <!-- ================================================ -->
+    <!-- PROJECT DEPENDENCIES -->
+    <!-- ================================================ -->
+
     <dependencies>
 
         <!-- SQLite Database Driver -->
@@ -32,24 +38,37 @@
             <version>3.54.1.0</version>
         </dependency>
 
-        <!-- JUnit for Testing -->
+        <!-- JUnit 4 for Automated Testing -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>3.8.1</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
 
     </dependencies>
 
-    <!-- Maven Build Configuration -->
+    <!-- ================================================ -->
+    <!-- MAVEN BUILD CONFIGURATION -->
+    <!-- ================================================ -->
+
     <build>
         <plugins>
+
+            <!-- Java Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
             </plugin>
+
+            <!-- Automated Test Runner -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.1</version>
+            </plugin>
+
         </plugins>
     </build>
 
