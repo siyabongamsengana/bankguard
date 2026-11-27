@@ -2,27 +2,26 @@
 package com.bankguard.ui;
 
 // ============================================================
-// BANKGUARD v1.1 - CONTROL ASSESSMENT WORKSPACE
+// BANKGUARD - CONTROL ASSESSMENT & REVIEW WORKSPACE
 // ============================================================
 
 // ============================================================
 // IMPORTS
 // ============================================================
 
-// I import my control, test and evidence models
-// so I can display records saved in SQLite.
-
+// I import the models needed to display saved records.
 import com.bankguard.model.Control;
 import com.bankguard.model.ControlTest;
 import com.bankguard.model.Evidence;
+import com.bankguard.model.AssessmentReview;
 
-// I use my services to apply validation and
-// retrieve or save assessment information.
-
+// I use my services to apply business rules.
 import com.bankguard.service.ControlService;
 import com.bankguard.service.ControlTestService;
 import com.bankguard.service.EvidenceService;
+import com.bankguard.service.AssessmentReviewService;
 
+// I use these classes for console input and database errors.
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -34,14 +33,12 @@ public class ControlAssessmentMenu {
     // 1. DECLARATIONS
     // ========================================================
 
-    // I reuse the Scanner from my main BankGuard menu.
     private final Scanner input;
 
-    // I use these services to manage my controls,
-    // assessments and evidence references.
     private final ControlService controlService;
     private final ControlTestService testService;
     private final EvidenceService evidenceService;
+    private final AssessmentReviewService reviewService;
 
     // ========================================================
     // 2. INITIALISATION
@@ -49,25 +46,28 @@ public class ControlAssessmentMenu {
 
     public ControlAssessmentMenu(Scanner input) {
 
-        // I share the same input reader with my main menu.
+        // I reuse the Scanner from my main menu.
         this.input = input;
 
-        // I prepare the services for this workspace.
-        this.controlService = new ControlService();
-        this.testService = new ControlTestService();
-        this.evidenceService = new EvidenceService();
+        // I initialise my assessment services.
+        controlService = new ControlService();
+        testService = new ControlTestService();
+        evidenceService = new EvidenceService();
+
+        // I initialise the new review service.
+        reviewService = new AssessmentReviewService();
     }
 
     // ========================================================
-    // 3. STARTING MY CONTROL ASSESSMENT WORKSPACE
+    // 3. STARTING MY WORKSPACE
     // ========================================================
 
     public void start() {
 
         // ========== DECLARATIONS ==========
 
-        int choice;
         boolean running;
+        int choice;
 
         // ========== INITIALISATION ==========
 
@@ -83,39 +83,34 @@ public class ControlAssessmentMenu {
 
             switch (choice) {
 
-                case 1 ->
-                    registerControl();
+                case 1 -> registerControl();
 
-                case 2 ->
-                    viewControlRegister();
+                case 2 -> viewControlRegister();
 
-                case 3 ->
-                    viewControlsByRisk();
+                case 3 -> viewControlsByRisk();
 
-                case 4 ->
-                    recordControlAssessment();
+                case 4 -> recordControlAssessment();
 
-                case 5 ->
-                    viewTestingHistory();
+                case 5 -> viewTestingHistory();
 
-                case 6 ->
-                    registerEvidence();
+                case 6 -> registerEvidence();
 
-                case 7 ->
-                    viewAssessmentEvidence();
+                case 7 -> viewAssessmentEvidence();
 
-                case 8 -> {
+                case 8 -> reviewAssessment();
 
-                    // I return to BankGuard's main menu.
+                case 9 -> viewAssessmentReview();
+
+                case 10 -> {
+
                     System.out.println(
-                            "Returning to the main menu...");
+                            "Returning to main menu...");
 
                     running = false;
                 }
 
-                default ->
-                    System.out.println(
-                            "Invalid option. Please try again.");
+                default -> System.out.println(
+                        "Invalid option. Please try again.");
             }
         }
     }
@@ -129,6 +124,7 @@ public class ControlAssessmentMenu {
         System.out.println();
         System.out.println(
                 "========== CONTROL ASSESSMENT WORKSPACE ==========");
+
         System.out.println("1. Register an IT control");
         System.out.println("2. View control register");
         System.out.println("3. View controls linked to a risk");
@@ -136,8 +132,12 @@ public class ControlAssessmentMenu {
         System.out.println("5. View control testing history");
         System.out.println("6. Register evidence");
         System.out.println("7. View assessment evidence");
-        System.out.println("8. Return to main menu");
-        System.out.println("==================================================");
+        System.out.println("8. Review an assessment");
+        System.out.println("9. View assessment review");
+        System.out.println("10. Return to main menu");
+
+        System.out.println(
+                "==================================================");
     }
 
     // ========================================================
@@ -150,6 +150,7 @@ public class ControlAssessmentMenu {
 
         int riskId;
         int ownerId;
+
         String controlName;
         String objective;
         String type;
@@ -176,20 +177,18 @@ public class ControlAssessmentMenu {
         System.out.println("2. Detective");
         System.out.println("3. Corrective");
 
-        type = readText(
-                "Enter type name or number: ");
+        type = readText("Enter type name or number: ");
 
         // ========== PROCESSING ==========
 
-        // I convert numbered choices to the exact
-        // control type values accepted by SQLite.
         switch (type) {
 
             case "1" -> type = "Preventive";
             case "2" -> type = "Detective";
             case "3" -> type = "Corrective";
+
             default -> {
-                // My service will validate a typed name.
+                // I allow the service to validate a name.
             }
         }
 
@@ -203,8 +202,6 @@ public class ControlAssessmentMenu {
         frequency = readText(
                 "Control frequency (e.g. Every login): ");
 
-        // I let my service validate the information
-        // and save the control if the details are valid.
         result = controlService.registerControl(
                 riskId,
                 controlName,
@@ -216,12 +213,11 @@ public class ControlAssessmentMenu {
 
         // ========== OUTPUT ==========
 
-        System.out.println();
         System.out.println(result);
     }
 
     // ========================================================
-    // 6. VIEWING THE FULL CONTROL REGISTER
+    // 6. VIEWING REGISTERED CONTROLS
     // ========================================================
 
     private void viewControlRegister() {
@@ -231,7 +227,6 @@ public class ControlAssessmentMenu {
 
         try {
 
-            // I retrieve all registered controls.
             List<Control> controls =
                     controlService.getAllControls();
 
@@ -243,7 +238,6 @@ public class ControlAssessmentMenu {
                 return;
             }
 
-            // I display every saved control.
             displayControls(controls);
 
         } catch (SQLException | IOException e) {
@@ -255,7 +249,7 @@ public class ControlAssessmentMenu {
     }
 
     // ========================================================
-    // 7. VIEWING CONTROLS LINKED TO ONE RISK
+    // 7. VIEWING CONTROLS LINKED TO A RISK
     // ========================================================
 
     private void viewControlsByRisk() {
@@ -283,8 +277,6 @@ public class ControlAssessmentMenu {
             List<Control> controls =
                     controlService.getControlsByRisk(riskId);
 
-            // ========== OUTPUT ==========
-
             if (controls.isEmpty()) {
 
                 System.out.println(
@@ -310,9 +302,6 @@ public class ControlAssessmentMenu {
 
     private void displayControls(List<Control> controls) {
 
-        // I display enough information to understand
-        // the control and who is responsible for it.
-
         for (Control control : controls) {
 
             System.out.println();
@@ -320,40 +309,31 @@ public class ControlAssessmentMenu {
                     "----------------------------------------");
 
             System.out.println(
-                    "Control ID: "
-                    + control.getControlId());
+                    "Control ID: " + control.getControlId());
 
             System.out.println(
-                    "Risk ID: "
-                    + control.getRiskId());
+                    "Risk ID: " + control.getRiskId());
 
             System.out.println(
-                    "Name: "
-                    + control.getControlName());
+                    "Name: " + control.getControlName());
 
             System.out.println(
-                    "Objective: "
-                    + control.getControlObjective());
+                    "Objective: " + control.getControlObjective());
 
             System.out.println(
-                    "Type: "
-                    + control.getControlType());
+                    "Type: " + control.getControlType());
 
             System.out.println(
-                    "Owner Employee ID: "
-                    + control.getOwnerId());
+                    "Owner Employee ID: " + control.getOwnerId());
 
             System.out.println(
-                    "Frequency: "
-                    + control.getFrequency());
+                    "Frequency: " + control.getFrequency());
 
             System.out.println(
-                    "Status: "
-                    + control.getStatus());
+                    "Status: " + control.getStatus());
 
             System.out.println(
-                    "Created: "
-                    + control.getCreatedAt());
+                    "Created: " + control.getCreatedAt());
         }
 
         System.out.println(
@@ -370,6 +350,7 @@ public class ControlAssessmentMenu {
 
         int controlId;
         int testerId;
+
         String procedure;
         String period;
         String observations;
@@ -392,7 +373,7 @@ public class ControlAssessmentMenu {
                 "Describe the test procedure: ");
 
         period = readText(
-                "Assessment period (e.g. November 2026): ");
+                "Assessment period: ");
 
         observations = readText(
                 "Test observations or results: ");
@@ -415,8 +396,9 @@ public class ControlAssessmentMenu {
             case "2" -> conclusion = "Effective";
             case "3" -> conclusion = "Ineffective";
             case "4" -> conclusion = "Inconclusive";
+
             default -> {
-                // My service will validate a typed name.
+                // My service validates typed conclusions.
             }
         }
 
@@ -427,7 +409,6 @@ public class ControlAssessmentMenu {
             return;
         }
 
-        // I save the assessment using my service.
         result = testService.registerControlTest(
                 controlId,
                 procedure,
@@ -439,21 +420,18 @@ public class ControlAssessmentMenu {
 
         // ========== OUTPUT ==========
 
-        System.out.println();
         System.out.println(result);
 
-        // I remind myself that the recorded conclusion
-        // has not been independently verified.
         if (result.startsWith(
                 "Control test recorded successfully")) {
 
             System.out.println(
-                    "Note: This is a recorded assessment, "
-                    + "not an approved audit conclusion.");
+                    "This conclusion is not yet approved.");
 
             System.out.println(
                     "Use option 5 to find the test ID, "
-                    + "then option 6 to register its evidence.");
+                    + "option 6 to register evidence, "
+                    + "and option 8 for independent review.");
         }
     }
 
@@ -486,8 +464,6 @@ public class ControlAssessmentMenu {
             List<ControlTest> tests =
                     testService.getTestsByControl(controlId);
 
-            // ========== OUTPUT ==========
-
             if (tests.isEmpty()) {
 
                 System.out.println(
@@ -517,28 +493,37 @@ public class ControlAssessmentMenu {
                         + test.getAssessmentPeriod());
 
                 System.out.println(
-                        "Observations: "
-                        + test.getTestResults());
+                        "Observations: " + test.getTestResults());
 
                 System.out.println(
                         "Recorded Conclusion: "
                         + test.getConclusion());
 
                 System.out.println(
-                        "Tester Employee ID: "
-                        + test.getTestedBy());
+                        "Tester Employee ID: " + test.getTestedBy());
 
                 System.out.println(
-                        "Test Recorded At: "
-                        + test.getTestedAt());
+                        "Recorded At: " + test.getTestedAt());
+
+                // I clearly separate a proposed conclusion
+                // from an independently reviewed assessment.
+                AssessmentReview review =
+                        reviewService.getReview(test.getTestId());
+
+                if (review == null) {
+
+                    System.out.println(
+                            "Review Status: Pending Review");
+
+                } else {
+
+                    System.out.println(
+                            "Review Status: " + review.getDecision());
+
+                    System.out.println(
+                            "Reviewer ID: " + review.getReviewerId());
+                }
             }
-
-            System.out.println(
-                    "----------------------------------------");
-
-            System.out.println(
-                    "Note: Conclusions are not yet "
-                    + "subject to an approval workflow.");
 
         } catch (SQLException | IOException e) {
 
@@ -549,7 +534,7 @@ public class ControlAssessmentMenu {
     }
 
     // ========================================================
-    // 11. REGISTERING AN EVIDENCE REFERENCE
+    // 11. REGISTERING ASSESSMENT EVIDENCE
     // ========================================================
 
     private void registerEvidence() {
@@ -557,6 +542,7 @@ public class ControlAssessmentMenu {
         // ========== DECLARATIONS ==========
 
         int testId;
+
         String evidenceName;
         String source;
         String description;
@@ -577,8 +563,7 @@ public class ControlAssessmentMenu {
 
         evidenceName = readText("Evidence name: ");
 
-        source = readText(
-                "Evidence source (e.g. Security Team): ");
+        source = readText("Evidence source: ");
 
         description = readText(
                 "Describe what the evidence shows: ");
@@ -588,8 +573,6 @@ public class ControlAssessmentMenu {
 
         // ========== PROCESSING ==========
 
-        // I register a description and reference.
-        // The actual evidence file is not uploaded.
         result = evidenceService.registerEvidence(
                 testId,
                 evidenceName,
@@ -600,12 +583,11 @@ public class ControlAssessmentMenu {
 
         // ========== OUTPUT ==========
 
-        System.out.println();
         System.out.println(result);
     }
 
     // ========================================================
-    // 12. VIEWING EVIDENCE LINKED TO AN ASSESSMENT
+    // 12. VIEWING EVIDENCE
     // ========================================================
 
     private void viewAssessmentEvidence() {
@@ -633,8 +615,6 @@ public class ControlAssessmentMenu {
             List<Evidence> records =
                     evidenceService.getEvidenceByTest(testId);
 
-            // ========== OUTPUT ==========
-
             if (records.isEmpty()) {
 
                 System.out.println(
@@ -651,41 +631,31 @@ public class ControlAssessmentMenu {
                         "----------------------------------------");
 
                 System.out.println(
-                        "Evidence ID: "
-                        + evidence.getEvidenceId());
+                        "Evidence ID: " + evidence.getEvidenceId());
 
                 System.out.println(
-                        "Control Test ID: "
-                        + evidence.getTestId());
+                        "Control Test ID: " + evidence.getTestId());
 
                 System.out.println(
-                        "Evidence Name: "
-                        + evidence.getEvidenceName());
+                        "Evidence Name: " + evidence.getEvidenceName());
 
                 System.out.println(
-                        "Source: "
-                        + evidence.getEvidenceSource());
+                        "Source: " + evidence.getEvidenceSource());
 
                 System.out.println(
                         "Description: "
                         + evidence.getEvidenceDescription());
 
                 System.out.println(
-                        "Reference: "
-                        + evidence.getEvidenceReference());
+                        "Reference: " + evidence.getEvidenceReference());
 
                 System.out.println(
-                        "Recorded At: "
-                        + evidence.getRecordedAt());
+                        "Recorded At: " + evidence.getRecordedAt());
             }
 
             System.out.println(
-                    "----------------------------------------");
-
-            System.out.println(
-                    "These are evidence references. "
-                    + "The underlying files have not "
-                    + "been uploaded or verified.");
+                    "These are evidence references, "
+                    + "not verified files.");
 
         } catch (SQLException | IOException e) {
 
@@ -696,7 +666,161 @@ public class ControlAssessmentMenu {
     }
 
     // ========================================================
-    // 13. READING NUMERIC INPUT SAFELY
+    // 13. REVIEWING AN ASSESSMENT - NEW
+    // ========================================================
+
+    private void reviewAssessment() {
+
+        // ========== DECLARATIONS ==========
+
+        int testId;
+        int reviewerId;
+
+        String choice;
+        String decision;
+        String evidenceAssessment;
+        String reviewNotes;
+        String result;
+
+        // ========== INPUT ==========
+
+        System.out.println();
+        System.out.println(
+                "----- INDEPENDENT ASSESSMENT REVIEW -----");
+
+        testId = readPositiveInt("Enter control test ID: ");
+
+        if (testId <= 0) {
+            return;
+        }
+
+        reviewerId = readPositiveInt(
+                "Enter reviewer employee ID: ");
+
+        if (reviewerId <= 0) {
+            return;
+        }
+
+        System.out.println();
+        System.out.println("Review decisions:");
+        System.out.println("1. Approved");
+        System.out.println("2. Rejected");
+
+        choice = readText("Choose review decision: ");
+
+        // ========== PROCESSING ==========
+
+        decision = switch (choice) {
+
+            case "1" -> "Approved";
+            case "2" -> "Rejected";
+            default -> choice;
+        };
+
+        evidenceAssessment = readText(
+                "Evaluate the evidence: ");
+
+        reviewNotes = readText(
+                "Explain your decision: ");
+
+        // I let my service enforce the review rules.
+        result = reviewService.reviewAssessment(
+                testId,
+                reviewerId,
+                decision,
+                evidenceAssessment,
+                reviewNotes
+        );
+
+        // ========== OUTPUT ==========
+
+        System.out.println();
+        System.out.println(result);
+
+        System.out.println(
+                "Reminder: A saved review decision is not "
+                + "independent proof that evidence is reliable.");
+    }
+
+    // ========================================================
+    // 14. VIEWING AN ASSESSMENT REVIEW - NEW
+    // ========================================================
+
+    private void viewAssessmentReview() {
+
+        // ========== DECLARATIONS ==========
+
+        int testId;
+
+        // ========== INPUT ==========
+
+        System.out.println();
+        System.out.println(
+                "----- ASSESSMENT REVIEW RECORD -----");
+
+        testId = readPositiveInt("Enter control test ID: ");
+
+        if (testId <= 0) {
+            return;
+        }
+
+        // ========== PROCESSING ==========
+
+        try {
+
+            AssessmentReview review =
+                    reviewService.getReview(testId);
+
+            // ========== OUTPUT ==========
+
+            if (review == null) {
+
+                System.out.println(
+                        "No review has been recorded for test "
+                        + testId + ".");
+
+                return;
+            }
+
+            System.out.println();
+            System.out.println(
+                    "----------------------------------------");
+
+            System.out.println(
+                    "Review ID: " + review.getReviewId());
+
+            System.out.println(
+                    "Control Test ID: " + review.getTestId());
+
+            System.out.println(
+                    "Reviewer Employee ID: " + review.getReviewerId());
+
+            System.out.println(
+                    "Decision: " + review.getDecision());
+
+            System.out.println(
+                    "Evidence Assessment: "
+                    + review.getEvidenceAssessment());
+
+            System.out.println(
+                    "Review Notes: " + review.getReviewNotes());
+
+            System.out.println(
+                    "Reviewed At: " + review.getReviewedAt());
+
+            System.out.println(
+                    "----------------------------------------");
+
+        } catch (SQLException | IOException e) {
+
+            System.out.println(
+                    "Unable to retrieve review: "
+                    + e.getMessage());
+        }
+    }
+
+    // ========================================================
+    // 15. READING NUMERIC INPUT
     // ========================================================
 
     private int readPositiveInt(String message) {
@@ -709,9 +833,6 @@ public class ControlAssessmentMenu {
         // ========== INPUT ==========
 
         System.out.print(message);
-
-        // I read the whole line to avoid Scanner
-        // problems caused by mixing nextInt and nextLine.
         enteredValue = input.nextLine().trim();
 
         // ========== VALIDATION ==========
@@ -723,8 +844,7 @@ public class ControlAssessmentMenu {
             if (number <= 0) {
 
                 System.out.println(
-                        "Please enter a number greater "
-                        + "than zero.");
+                        "Please enter a number greater than zero.");
 
                 return -1;
             }
@@ -736,21 +856,19 @@ public class ControlAssessmentMenu {
         } catch (NumberFormatException e) {
 
             System.out.println(
-                    "Invalid number. Please enter "
-                    + "a whole number.");
+                    "Invalid number. Please enter a whole number.");
 
             return -1;
         }
     }
 
     // ========================================================
-    // 14. READING TEXT INPUT
+    // 16. READING TEXT INPUT
     // ========================================================
 
     private String readText(String message) {
 
-        // I read the user's text without changing
-        // its meaning. My services validate it.
+        // I read a full line and remove extra spaces.
         System.out.print(message);
 
         return input.nextLine().trim();

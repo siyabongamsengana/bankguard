@@ -2,7 +2,7 @@
 package com.bankguard.ui;
 
 // ============================================================
-// BANKGUARD v1.1 - MAIN CONSOLE MENU
+// BANKGUARD - MAIN CONSOLE MENU
 // ============================================================
 
 // ============================================================
@@ -47,8 +47,8 @@ public class ConsoleMenu {
     // I use this menu to manage GRC projects and tasks.
     private final ProjectWorkspaceMenu projectWorkspaceMenu;
 
-    // I use this menu to manage controls, assessments
-    // and supporting evidence.
+    // I use this menu to manage controls, assessments,
+    // supporting evidence and independent reviews.
     private final ControlAssessmentMenu controlAssessmentMenu;
 
     // ========================================================
@@ -121,8 +121,9 @@ public class ConsoleMenu {
 
                 case "9" -> {
 
-                    // I open my new control assessment
-                    // workspace introduced in v1.1.
+                    // I open my Control Assessment Workspace.
+                    // This workspace now includes assessment
+                    // reviews and approval decisions.
                     controlAssessmentMenu.start();
                 }
 
@@ -154,7 +155,7 @@ public class ConsoleMenu {
 
         System.out.println();
         System.out.println(
-                "========== BANKGUARD v1.1 ==========");
+                "========== BANKGUARD ==========");
 
         System.out.println("1. Register a new IT risk");
         System.out.println("2. View registered risks");
@@ -168,7 +169,7 @@ public class ConsoleMenu {
         System.out.println("10. Exit");
 
         System.out.println(
-                "====================================");
+                "================================");
     }
 
     // ========================================================
@@ -657,6 +658,3 @@ public class ConsoleMenu {
         }
     }
 }
-
-
-
