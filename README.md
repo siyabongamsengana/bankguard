@@ -1,8 +1,8 @@
 
 # BankGuard — GRC Management & Practical Learning Platform
 
-**Version:** 1.1 — Assessment Review Extension  
-**Status:** Active Development  
+**Version:** 1.2 — Findings, Remediation & Verification  
+**Status:** Active Development — Release Candidate  
 **Focus:** Governance, Risk & Compliance (GRC) | IT Risk | Banking | Business Systems
 
 ## About BankGuard
@@ -11,9 +11,9 @@ BankGuard is an independent Java-based Governance, Risk and Compliance (GRC) man
 
 I'm building BankGuard to apply my IT in Business Systems knowledge and develop practical skills in identifying, assessing, managing and monitoring technology risks.
 
-My goal is to go beyond theoretical learning by building a system where I can practise GRC responsibilities through realistic, simulated banking scenarios.
+My goal is to move beyond theoretical learning by building a system where I can practise realistic GRC responsibilities through simulated banking scenarios.
 
-BankGuard combines **software development, business systems analysis, risk management and practical GRC learning**.
+BankGuard combines **software development, business systems analysis, technology risk management and practical GRC learning**.
 
 The long-term vision is to develop BankGuard into a web-based GRC platform and independent practical learning environment.
 
@@ -23,15 +23,15 @@ The long-term vision is to develop BankGuard into a web-based GRC platform and i
 
 BankGuard has three main objectives:
 
-1. **Build a functional GRC management system** that supports risk management, accountability, security controls, evidence management, assessment reviews and compliance activities.
+1. **Build a functional GRC management system** that supports risk management, accountability, security controls, evidence management, independent reviews and remediation tracking.
 
 2. **Practise GRC responsibilities** through fictional banking risk assessments, control testing and compliance projects.
 
-3. **Demonstrate practical skills** by documenting how I design systems, evaluate controls, make risk-based decisions and improve the platform.
+3. **Demonstrate practical skills** by documenting how I design systems, evaluate controls, make risk-based decisions and continuously improve the platform.
 
 ---
 
-## Current Features — v1.1
+## Current Features — v1.2
 
 ### 1. IT Risk Register
 
@@ -77,7 +77,7 @@ BankGuard records changes made to risk ownership and risk status.
 - Record risk ownership changes.
 - Record risk status changes.
 - Preserve previous and updated values.
-- Record the employee ID supplied for the change.
+- Record the employee ID supplied for each change.
 - Automatically record timestamps.
 - View audit history for individual risks.
 - Use database transactions to keep risk updates and related audit records consistent.
@@ -160,7 +160,7 @@ BankGuard supports documenting evidence references associated with control asses
 
 The existence of an evidence reference does not prove that the underlying evidence is authentic, reliable or sufficient.
 
-### 8. Assessment Review & Approval Workflow
+### 8. Independent Assessment Review & Approval — v1.1 Extension
 
 BankGuard supports independent review of recorded control assessments.
 
@@ -170,34 +170,214 @@ This feature separates an analyst's assessment conclusion from a reviewer's appr
 - Approve or reject control assessments.
 - Require a registered employee ID for the reviewer.
 - Prevent analysts from reviewing their own assessments.
-- Require at least one supporting evidence reference before approval.
+- Require supporting evidence references before approval.
 - Record the reviewer's evaluation of the evidence.
 - Require written reasons for review decisions.
-- Prevent duplicate review decisions for the same assessment.
+- Prevent duplicate review decisions.
 - Record reviewer IDs and timestamps.
 - Retrieve saved review decisions.
 
-**Review decisions:**
+Supported decisions:
 - Approved
 - Rejected
 
-**Example workflow:**
-
-1. An analyst records an MFA control assessment.
-2. The analyst documents test observations and a proposed conclusion.
-3. Supporting evidence references are registered.
-4. A different registered employee reviews the assessment.
-5. The reviewer records an approval or rejection with written reasons.
-6. BankGuard saves the review record for future reference.
-
-**Current limitations:**
-- Reviewer identities are not authenticated.
-- Evidence quality is evaluated through manually entered review information.
-- Actual evidence files are not independently verified.
-- Each assessment currently supports one review decision.
-- Rejected assessments cannot yet be resubmitted through a versioned workflow.
-
 An approved review represents a recorded reviewer decision, not an independently certified audit conclusion.
+
+### 9. Findings Register — New in v1.2
+
+BankGuard now supports recording weaknesses identified during control assessments.
+
+**Features:**
+- Register findings against existing control assessments.
+- Record finding titles and descriptions.
+- Classify findings according to severity.
+- Assign responsible employees.
+- Set remediation deadlines.
+- Track finding statuses.
+- View registered findings.
+- Validate finding information before saving.
+
+Supported severity levels:
+- Low
+- Medium
+- High
+- Critical
+
+**Example:**
+
+A control assessment identifies that an employee can reset a customer's password using publicly available information.
+
+The GRC analyst registers this weakness as a High-severity finding requiring corrective action.
+
+### 10. Remediation Action Tracking — New in v1.2
+
+BankGuard allows corrective actions to be assigned and tracked against identified findings.
+
+**Features:**
+- Register remediation actions.
+- Link corrective actions to existing findings.
+- Assign actions to registered employees.
+- Set remediation deadlines.
+- View actions linked to a finding.
+- Record completion evidence references.
+- Update corrective actions to Completed.
+- Prevent duplicate completion.
+- Prevent an employee ID different from the assigned employee from completing an action.
+- Prevent completion of an action linked to a closed finding.
+
+**Example:**
+
+An IT employee is assigned to strengthen customer identity verification during account recovery.
+
+After implementing the improvement, the employee records a fictional evidence reference demonstrating that the corrective work was completed.
+
+### 11. Independent Remediation Verification — New in v1.2
+
+BankGuard supports independent verification of corrective actions before a finding can be closed.
+
+This separates the employee who performs corrective work from the employee who evaluates it.
+
+**Features:**
+- Record Verified or Rejected decisions.
+- Require registered reviewers.
+- Prevent finding owners from verifying their own findings.
+- Prevent remediation assignees from verifying their own corrective work.
+- Require completed corrective actions before a successful verification.
+- Require completion evidence references.
+- Record evidence assessments and review notes.
+- Preserve verification history.
+- Prevent duplicate successful verification decisions.
+
+Supported decisions:
+- Verified
+- Rejected
+
+**Example:**
+
+After an IT employee strengthens the account recovery control, an independent reviewer evaluates the recorded remediation evidence.
+
+If the corrective work is considered sufficient, the reviewer records a Verified decision with supporting reasons.
+
+A successful verification does not automatically close the finding.
+
+### 12. Formal Finding Closure — New in v1.2
+
+BankGuard separates remediation completion, independent verification and formal finding closure.
+
+Before allowing closure, the system checks that:
+
+1. The finding exists and has not already been closed.
+2. The employee ID supplied for closure is registered.
+3. At least one remediation action exists.
+4. All remediation actions are completed.
+5. Each completed action has an evidence reference.
+6. The latest verification decision is Verified.
+7. Written closure justification is provided.
+
+**Features:**
+- Record formal closure decisions.
+- Link closures to successful verification records.
+- Preserve the employee ID supplied for closure.
+- Require documented closure reasons.
+- Record closure timestamps.
+- Prevent duplicate closure.
+- Save closure records and finding status changes in one database transaction.
+
+**Governance principle:**
+
+Corrective work should not be considered successfully resolved simply because someone says it has been completed.
+
+The system should preserve evidence, independent verification and accountability before a finding is closed.
+
+**Release-candidate note:** Additional controls are being added to prevent new remediation actions being registered after successful verification or closure.
+
+---
+
+## How the v1.2 GRC Workflow Works
+
+```text
+IDENTIFY AN IT RISK
+        |
+        v
+REGISTER A SECURITY CONTROL
+        |
+        v
+PERFORM A CONTROL ASSESSMENT
+        |
+        v
+DOCUMENT TEST RESULTS & EVIDENCE
+        |
+        v
+INDEPENDENT ASSESSMENT REVIEW
+        |
+        v
+REGISTER A FINDING
+        |
+        v
+ASSIGN REMEDIATION ACTIONS
+        |
+        v
+COMPLETE CORRECTIVE ACTIONS
+        |
+        v
+RECORD COMPLETION EVIDENCE
+        |
+        v
+INDEPENDENT REMEDIATION VERIFICATION
+        |
+        +-----------------------+
+        |                       |
+     REJECTED                VERIFIED
+        |                       |
+        v                       v
+FURTHER CORRECTIVE WORK   DOCUMENTED CLOSURE
+        |                       |
+        v                       v
+REASSESS REMEDIATION      FINDING CLOSED
+```
+
+---
+
+## Practical Banking GRC Scenario
+
+### Customer Account Takeover — Weak Account Recovery
+
+**Organisation:** Ubuntu Digital Bank (Fictional)
+
+**Business Risk:** Customer Account Takeover
+
+**Scenario:**
+
+During control testing, a GRC analyst identifies that an employee can reset a customer's password using information that is publicly available.
+
+This creates a weakness in the account recovery process and could increase the likelihood of unauthorised account access.
+
+**Simulated GRC workflow:**
+
+1. Register the account recovery weakness as a finding.
+2. Classify the finding as High severity.
+3. Assign responsibility to a registered employee.
+4. Create corrective actions to strengthen identity verification.
+5. Set remediation deadlines.
+6. Record completion of the corrective work.
+7. Document supporting evidence references.
+8. Obtain an independent remediation verification decision.
+9. Record formal closure reasons when the conditions are satisfied.
+10. Preserve the resulting findings, remediation, verification and closure records.
+
+**Learning outcomes:**
+- Risk identification
+- Control effectiveness assessment
+- Findings management
+- Accountability
+- Remediation monitoring
+- Evidence documentation
+- Separation of duties
+- Independent verification
+- Risk governance
+- Documented decision-making
+
+All scenarios and records are simulated.
 
 ---
 
@@ -207,55 +387,58 @@ BankGuard uses JUnit and Maven to test application functionality.
 
 ### Automated Integration Tests
 
-The current automated test suite contains **19 tests** covering:
+The v1.2 development milestone reached **59 passing automated tests**, covering:
 
-- Risk score calculation.
-- Invalid risk rating validation.
-- Valid control registration.
-- Invalid control type validation.
+- IT risk registration and scoring.
+- Risk data validation.
+- Risk ownership changes and audit history.
+- Control registration.
 - Control-to-risk relationships.
-- Control owner validation.
 - Control assessment registration.
-- Invalid assessment conclusions.
 - Evidence registration.
-- Invalid evidence relationships.
-- Risk status audit logging.
-- Approval with supporting evidence.
-- Rejection of approval without evidence.
-- Prevention of self-review.
-- Prevention of unregistered reviewers.
-- Rejection decisions without evidence.
-- Prevention of duplicate review decisions.
-- Required review reasoning.
-- Invalid review decision validation.
+- Independent assessment reviews.
+- Findings registration and validation.
+- Remediation action registration.
+- Corrective action completion.
+- Completion evidence requirements.
+- Independent remediation verification.
+- Prevention of self-verification.
+- Verification history.
+- Finding closure requirements.
+- Prevention of duplicate finding closure.
+- Preservation of closure records.
 
-**Verified testing milestone:**
-- 19 automated tests passed.
+**Development testing milestone:**
+- 59 automated tests passed locally.
 - Zero failures.
 - Zero errors.
-- GitHub Actions completed successfully.
 
-The tests use temporary SQLite databases to keep test records separate from the normal application database.
+The automated tests use temporary SQLite databases to keep test records separate from the normal application database.
 
-Passing automated tests does not guarantee the absence of defects. Additional security, performance and user-interface testing remain ongoing.
+### Final v1.2 Validation
+
+The project is currently undergoing additional governance testing.
+
+Planned tests include:
+- Preventing new remediation actions after successful verification.
+- Preventing actions being registered against closed findings.
+- Allowing additional corrective work after a rejected verification.
+
+These tests are expected to increase the total to **62 automated tests**.
+
+The full end-to-end banking simulation is also pending.
 
 ### GitHub Actions
 
 BankGuard uses GitHub Actions for continuous integration.
 
-Whenever changes are pushed to the main branch or a pull request targets main, the workflow:
+The workflow is configured to compile and test the project.
 
-1. Checks out the repository.
-2. Configures Java 17.
-3. Compiles the project using Maven.
-4. Runs the automated tests.
-5. Uploads test results.
-
-**Workflow:** `.github/workflows/maven-tests.yml`
-
-View automated test results:
+**GitHub Actions:**
 
 https://github.com/siyabongamsengana/bankguard/actions
+
+The latest v1.2 CI result must be confirmed separately from the successful local test run.
 
 ### Running Tests Locally
 
@@ -263,66 +446,7 @@ https://github.com/siyabongamsengana/bankguard/actions
 mvn clean test
 ```
 
-Maven runs the JUnit tests and reports whether they passed or failed.
-
----
-
-## Practical Banking GRC Projects
-
-BankGuard is being developed to support realistic learning activities involving Ubuntu Digital Bank.
-
-### Customer Account Takeover Risk Assessment
-
-Assess the risk of unauthorised access to customer accounts.
-
-Example controls:
-- Multi-Factor Authentication
-- Suspicious-login monitoring
-- Phishing awareness training
-- Account recovery verification
-
-Learning areas:
-- Risk identification
-- Likelihood and impact assessment
-- Control effectiveness
-- Residual risk
-- Evidence documentation
-- Escalation and accountability
-
-### PCI DSS Gap Analysis
-
-Review selected PCI DSS requirements against a fictional payment environment.
-
-Planned activities:
-- Identify applicable requirements.
-- Review simulated security controls.
-- Identify compliance gaps.
-- Document supporting evidence.
-- Recommend corrective actions.
-- Prepare assessment reports.
-
-### Security Control Effectiveness Assessment
-
-Evaluate how well security controls manage identified technology risks.
-
-Activities include:
-- Reviewing control objectives.
-- Documenting testing procedures.
-- Recording observations.
-- Evaluating simulated evidence.
-- Recording proposed conclusions.
-- Performing independent assessment reviews.
-
-### Additional Planned Assessment Areas
-
-- Third-party technology risk.
-- Phishing control effectiveness.
-- AI governance.
-- Information security compliance.
-- IT risk and control self-assessments.
-- Findings and remediation management.
-
-These are educational simulations. Not every listed assessment has been completed.
+Passing automated tests does not guarantee that the application has no defects or security weaknesses.
 
 ---
 
@@ -335,10 +459,10 @@ These are educational simulations. Not every listed assessment has been complete
 | SQL | Queries, relationships and migrations |
 | JDBC | Database connectivity |
 | Maven | Build and dependency management |
-| JUnit 4 | Automated integration testing |
+| JUnit 4 | Automated testing |
 | Git | Version control |
-| GitHub | Repository and project history |
-| GitHub Actions | Continuous integration and testing |
+| GitHub | Repository and development history |
+| GitHub Actions | Continuous integration |
 | Visual Studio Code | Development environment |
 
 ---
@@ -354,21 +478,23 @@ BankGuard follows a layered architecture:
 Represent application records, including:
 - Risks
 - Employees
-- Audit logs
 - GRC projects
 - Project tasks
 - Controls
 - Control tests
 - Evidence
 - Assessment reviews
+- Findings
+- Remediation actions
+- Remediation verifications
 
 ### Services
 
-Apply validation and business rules before information is saved.
+Apply validation and business rules before data is saved.
 
 ### Repositories
 
-Handle database operations and retrieve saved records.
+Handle database operations, queries, transactions and record retrieval.
 
 ### SQL Resources
 
@@ -376,7 +502,7 @@ Store SQL queries and database migration instructions separately from Java code.
 
 ### Console Interface
 
-Allows users to interact with risk management, project management, control testing, evidence management and assessment review functions.
+Provides access to the risk management, GRC project, control assessment and findings management workspaces.
 
 This architecture supports maintainability and future development.
 
@@ -426,6 +552,91 @@ mvn clean test
 
 ---
 
+## Console Workspaces
+
+BankGuard currently has three main workspaces.
+
+### 1. GRC Project Workspace
+
+Allows users to:
+- Create GRC projects.
+- Manage project tasks.
+- Update task statuses.
+- View project progress.
+
+### 2. Control Assessment Workspace
+
+Allows users to:
+- Register security controls.
+- Perform control assessments.
+- Document supporting evidence references.
+- Record independent assessment reviews.
+- View assessment information.
+
+### 3. Findings & Remediation Workspace — v1.2
+
+Allows users to:
+- Register findings.
+- View the findings register.
+- Create corrective actions.
+- View remediation actions.
+- Record corrective action completion.
+- Perform independent remediation verification.
+- View verification history.
+- Close verified findings.
+
+The Findings & Remediation Workspace is accessible through option 11 of the main console menu.
+
+---
+
+## Practical Banking GRC Projects
+
+### Customer Account Takeover Risk Assessment
+
+Assess risks relating to unauthorised customer account access.
+
+Example controls:
+- Multi-Factor Authentication
+- Suspicious-login monitoring
+- Phishing awareness training
+- Account recovery verification
+
+### PCI DSS Gap Analysis
+
+A planned practical learning project involving selected PCI DSS requirements within a fictional payment environment.
+
+Planned activities:
+- Identify applicable requirements.
+- Review simulated security controls.
+- Identify compliance gaps.
+- Document supporting evidence.
+- Recommend corrective actions.
+- Prepare assessment reports.
+
+### Security Control Effectiveness Assessment
+
+Evaluate whether security controls are working as intended.
+
+Activities include:
+- Reviewing control objectives.
+- Documenting testing procedures.
+- Recording observations.
+- Evaluating simulated evidence.
+- Recording assessment conclusions.
+- Performing independent reviews.
+
+### Additional Planned Assessment Areas
+
+- Third-party technology risk.
+- Phishing control effectiveness.
+- AI governance.
+- Information security compliance.
+- IT risk and control self-assessments.
+
+These are educational simulations. Not every listed assessment has been completed.
+
+---
+
 ## Development Roadmap
 
 | Version | Development Focus | Status |
@@ -436,37 +647,29 @@ mvn clean test
 | v0.9 | Risk audit trails | Completed |
 | v1.0 | GRC Project Workspace | Completed |
 | v1.1 | Control registration, testing and evidence references | Completed |
-| v1.1 Extension | Assessment reviews and approval decisions | Implemented and automated tests passed |
-| v1.2 | Findings and remediation tracking | Planned |
-| v1.3 | Practical banking GRC simulations | Planned |
+| v1.1 Extension | Independent assessment reviews | Completed |
+| v1.2 | Findings, remediation, verification and closure | Implemented — final validation pending |
+| v1.3 | Practical banking GRC simulations and workflow improvements | Planned |
 | v1.4 | Assessment reporting and portfolio exports | Planned |
 | Future | Spring Boot backend and web-based interface | Planned |
 
 ---
 
-## Next Development Phase — Findings & Remediation
+## Known Limitations
 
-The next BankGuard milestone is Findings and Remediation Tracking.
+BankGuard is currently an educational prototype.
 
-The goal is to connect weaknesses discovered during control testing to corrective actions and accountability.
+- Employee identities are not authenticated.
+- Role-based access control has not yet been implemented.
+- Evidence is represented by references rather than verified files.
+- Verification relies on manually entered review information.
+- Closure authority is not enforced through authenticated roles.
+- The system requires additional safeguards against changes after successful verification.
+- A formal finding reopening and re-verification process has not yet been implemented.
+- SQLite is currently used as a local development database.
+- The platform has not undergone professional security or compliance certification.
 
-Planned functionality:
-- Register control weaknesses as findings.
-- Link findings to risks, controls and assessments.
-- Classify findings by severity.
-- Assign responsible employees.
-- Set remediation deadlines.
-- Track corrective actions.
-- Record remediation evidence.
-- Verify whether corrective actions were effective.
-- Preserve a history of remediation decisions.
-- Prevent unsupported finding closure.
-
-**Example:**
-
-An account recovery control fails because an employee resets a customer password using information publicly available online.
-
-BankGuard should allow the analyst to document the weakness, assign an owner, record corrective actions and verify remediation before the finding is closed.
+These limitations guide future development priorities.
 
 ---
 
@@ -477,10 +680,12 @@ My long-term goal is to develop BankGuard into a web-based GRC workspace and pra
 I want BankGuard to support:
 
 - Independent banking GRC assessments.
-- IT risk and control management.
+- IT risk and security control management.
 - Evidence-based control testing.
-- Compliance gap analysis.
+- PCI DSS gap analysis.
 - Findings and remediation tracking.
+- Third-party risk assessments.
+- AI governance assessments.
 - Assessment approval workflows.
 - Practical GRC assignments.
 - Structured feedback on decisions.
@@ -500,7 +705,8 @@ Through BankGuard, I'm developing practical knowledge in:
 - Governance and accountability.
 - Security control design and testing.
 - Evidence evaluation and documentation.
-- Assessment review processes.
+- Findings and remediation management.
+- Independent review processes.
 - Audit trails and data integrity.
 - Business systems analysis.
 - Database design.
@@ -522,7 +728,7 @@ Ubuntu Digital Bank is a fictional financial institution.
 
 All banking scenarios are simulated and do not represent actual banking employment or professional audit engagements.
 
-BankGuard is not a certified GRC or compliance assessment product.
+BankGuard is not a certified GRC, PCI DSS or compliance assessment product.
 
 ---
 
@@ -533,5 +739,7 @@ BankGuard is not a certified GRC or compliance assessment product.
 IT in Business Systems Student
 
 **Areas of Interest:** Governance, Risk & Compliance | Technology Risk | Banking | PCI DSS | Information Security
+
+
 
 
