@@ -2,8 +2,8 @@
 package com.bankguard.database;
 
 // ============================================================
-// BANKGUARD - DATABASE MANAGER
-// ASSESSMENT REVIEW DEVELOPMENT
+// BANKGUARD v1.2 - DATABASE MANAGER
+// FINDINGS, REMEDIATION, VERIFICATION AND CLOSURE
 // ============================================================
 
 // ============================================================
@@ -34,7 +34,7 @@ public class DatabaseManager {
     private static final String DB_URL_PROPERTY =
             "bankguard.db.url";
 
-    // I keep my original schema resource.
+    // I keep my original database schema.
     private static final String SCHEMA_FILE =
             "/sql/schema.sql";
 
@@ -50,13 +50,25 @@ public class DatabaseManager {
     private static final String PROJECT_MIGRATION_FILE =
             "/sql/migrations/add_grc_projects.sql";
 
-    // I preserve my control, testing and evidence tables.
+    // I preserve controls, testing and evidence.
     private static final String CONTROLS_MIGRATION_FILE =
             "/sql/migrations/add_controls_and_evidence.sql";
 
-    // I introduce a separate assessment review table.
+    // I preserve independent assessment reviews.
     private static final String REVIEWS_MIGRATION_FILE =
             "/sql/migrations/add_assessment_reviews.sql";
+
+    // I preserve findings and corrective actions.
+    private static final String FINDINGS_MIGRATION_FILE =
+            "/sql/migrations/add_findings_and_remediation.sql";
+
+    // I preserve independent remediation verification.
+    private static final String VERIFICATION_MIGRATION_FILE =
+            "/sql/migrations/add_remediation_verification.sql";
+
+    // I introduce formal finding closure records.
+    private static final String CLOSURE_MIGRATION_FILE =
+            "/sql/migrations/add_finding_closures.sql";
 
     // I keep my original employee seed instruction.
     private static final String ADD_USER_FILE =
@@ -75,7 +87,8 @@ public class DatabaseManager {
 
         // ========== INITIALISATION ==========
 
-        // I check whether a test database was specified.
+        // I check whether an automated test database
+        // has been specified.
         databaseUrl = System.getProperty(
                 DB_URL_PROPERTY,
                 DB_URL
@@ -94,7 +107,7 @@ public class DatabaseManager {
         // I connect to the selected SQLite database.
         connection = DriverManager.getConnection(databaseUrl);
 
-        // I enable foreign key checks for each connection.
+        // I enable foreign key checks for every connection.
         try (Statement stmt = connection.createStatement()) {
 
             stmt.execute("PRAGMA foreign_keys = ON");
@@ -132,7 +145,7 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
-        // I remove full-line comments from my SQL.
+        // I remove full-line comments from SQL files.
         for (String line : sqlContent.split("\\R")) {
 
             if (!line.stripLeading().startsWith("--")) {
@@ -142,7 +155,7 @@ public class DatabaseManager {
         }
 
         // I separate the simple SQL statements
-        // used in my current database migrations.
+        // used in my database migrations.
         sqlStatements = cleanSql.toString().split(";");
 
         try (Statement stmt = conn.createStatement()) {
@@ -158,12 +171,13 @@ public class DatabaseManager {
     }
 
     // ========================================================
-    // 4. LOADING THE ORIGINAL DATABASE SCHEMA
+    // 4. LOADING MY ORIGINAL DATABASE SCHEMA
     // ========================================================
 
     private static void loadSchema(Connection conn)
             throws SQLException, IOException {
 
+        // I create my original BankGuard database tables.
         executeSqlFile(conn, SCHEMA_FILE);
     }
 
@@ -185,6 +199,8 @@ public class DatabaseManager {
 
         // ========== PROCESSING ==========
 
+        // I check whether the risks table already
+        // contains the status column.
         try (Statement stmt = conn.createStatement();
              ResultSet results =
                      stmt.executeQuery("PRAGMA table_info(risks)")) {
@@ -200,6 +216,7 @@ public class DatabaseManager {
             }
         }
 
+        // I add the column only if it is missing.
         if (!statusExists) {
 
             sql = SqlLoader.loadSql(STATUS_MIGRATION_FILE);
@@ -218,6 +235,7 @@ public class DatabaseManager {
     private static void ensureAuditTable(Connection conn)
             throws SQLException, IOException {
 
+        // I preserve risk ownership and status changes.
         executeSqlFile(conn, AUDIT_MIGRATION_FILE);
     }
 
@@ -228,6 +246,7 @@ public class DatabaseManager {
     private static void ensureProjectTables(Connection conn)
             throws SQLException, IOException {
 
+        // I prepare GRC projects and their tasks.
         executeSqlFile(conn, PROJECT_MIGRATION_FILE);
     }
 
@@ -238,6 +257,7 @@ public class DatabaseManager {
     private static void ensureControlTables(Connection conn)
             throws SQLException, IOException {
 
+        // I prepare controls, assessments and evidence.
         executeSqlFile(conn, CONTROLS_MIGRATION_FILE);
     }
 
@@ -249,14 +269,48 @@ public class DatabaseManager {
             Connection conn)
             throws SQLException, IOException {
 
-        // I create the assessment review table
-        // without deleting existing control tests.
-
+        // I preserve assessment approvals and rejections.
         executeSqlFile(conn, REVIEWS_MIGRATION_FILE);
     }
 
     // ========================================================
-    // 10. PREPARING MY DATABASE
+    // 10. CREATING FINDINGS AND REMEDIATION TABLES
+    // ========================================================
+
+    private static void ensureFindingsTables(Connection conn)
+            throws SQLException, IOException {
+
+        // I prepare findings and corrective actions.
+        executeSqlFile(conn, FINDINGS_MIGRATION_FILE);
+    }
+
+    // ========================================================
+    // 11. CREATING REMEDIATION VERIFICATION TABLES
+    // ========================================================
+
+    private static void ensureVerificationTables(
+            Connection conn)
+            throws SQLException, IOException {
+
+        // I preserve independent verification decisions
+        // and the reviewer's supporting reasoning.
+        executeSqlFile(conn, VERIFICATION_MIGRATION_FILE);
+    }
+
+    // ========================================================
+    // 12. CREATING FINDING CLOSURE TABLES
+    // ========================================================
+
+    private static void ensureClosureTables(Connection conn)
+            throws SQLException, IOException {
+
+        // I prepare formal closure records while
+        // preserving existing findings and reviews.
+        executeSqlFile(conn, CLOSURE_MIGRATION_FILE);
+    }
+
+    // ========================================================
+    // 13. PREPARING MY DATABASE
     // ========================================================
 
     public boolean createTables() {
@@ -269,13 +323,13 @@ public class DatabaseManager {
 
         try (Connection conn = connect()) {
 
-            // I create my original tables.
+            // I create my original database tables.
             loadSchema(conn);
 
             // I upgrade older risk records.
             ensureStatusColumn(conn);
 
-            // I preserve the existing risk audit trail.
+            // I prepare the risk audit trail.
             ensureAuditTable(conn);
 
             // I prepare GRC projects and tasks.
@@ -284,8 +338,17 @@ public class DatabaseManager {
             // I prepare controls, tests and evidence.
             ensureControlTables(conn);
 
-            // I create the new assessment review table.
+            // I prepare independent assessment reviews.
             ensureAssessmentReviewTables(conn);
+
+            // I prepare findings and corrective actions.
+            ensureFindingsTables(conn);
+
+            // I prepare independent remediation verification.
+            ensureVerificationTables(conn);
+
+            // I prepare formal finding closure records.
+            ensureClosureTables(conn);
 
             // I seed my original fictional employee.
             addUserSql = SqlLoader.loadSql(ADD_USER_FILE);
@@ -311,3 +374,5 @@ public class DatabaseManager {
         }
     }
 }
+
+

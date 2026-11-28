@@ -2,26 +2,25 @@
 package com.bankguard.ui;
 
 // ============================================================
-// BANKGUARD - MAIN CONSOLE MENU
+// BANKGUARD v1.2 - MAIN CONSOLE MENU
 // ============================================================
 
 // ============================================================
 // IMPORTS
 // ============================================================
 
-// I import my models to display saved banking records.
+// I import my models to display banking records.
 import com.bankguard.model.Risk;
 import com.bankguard.model.Employee;
 
-// I use services to apply business rules and validation.
+// I use services to apply business rules.
 import com.bankguard.service.RiskService;
 import com.bankguard.service.EmployeeService;
 
 // I use my database connection to display audit records.
 import com.bankguard.database.DatabaseManager;
 
-// I import the Java tools needed for database queries,
-// lists and console input.
+// I import Java tools for database queries and input.
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -48,8 +47,12 @@ public class ConsoleMenu {
     private final ProjectWorkspaceMenu projectWorkspaceMenu;
 
     // I use this menu to manage controls, assessments,
-    // supporting evidence and independent reviews.
+    // evidence and independent assessment reviews.
     private final ControlAssessmentMenu controlAssessmentMenu;
+
+    // I use this menu to manage findings, corrective
+    // actions, verification and closure decisions.
+    private final FindingsRemediationMenu findingsRemediationMenu;
 
     // ========================================================
     // 2. INITIALISATION
@@ -64,11 +67,14 @@ public class ConsoleMenu {
         riskService = new RiskService();
         employeeService = new EmployeeService();
 
-        // I reuse my Scanner in both workspaces.
+        // I reuse the same Scanner in every workspace.
         projectWorkspaceMenu = new ProjectWorkspaceMenu(input);
 
         controlAssessmentMenu =
                 new ControlAssessmentMenu(input);
+
+        findingsRemediationMenu =
+                new FindingsRemediationMenu(input);
     }
 
     // ========================================================
@@ -115,25 +121,33 @@ public class ConsoleMenu {
 
                 case "8" -> {
 
-                    // I open my GRC project workspace.
+                    // I open my GRC Project Workspace.
                     projectWorkspaceMenu.start();
                 }
 
                 case "9" -> {
 
                     // I open my Control Assessment Workspace.
-                    // This workspace now includes assessment
-                    // reviews and approval decisions.
                     controlAssessmentMenu.start();
                 }
 
                 case "10" -> {
 
-                    // I stop the main application loop.
+                    // I stop my main application loop.
                     running = false;
 
                     System.out.println(
                             "\nThank you for using BankGuard.");
+                }
+
+                case "11" -> {
+
+                    // I open my Findings & Remediation Workspace.
+                    //
+                    // I can register findings, assign corrective
+                    // work, record completion evidence, verify
+                    // remediation and close verified findings.
+                    findingsRemediationMenu.start();
                 }
 
                 default -> System.out.println(
@@ -143,7 +157,7 @@ public class ConsoleMenu {
 
         // ========== END OF PROGRAM ==========
 
-        // I close the input reader when BankGuard exits.
+        // I close my input reader when BankGuard exits.
         input.close();
     }
 
@@ -154,8 +168,9 @@ public class ConsoleMenu {
     private void displayMainMenu() {
 
         System.out.println();
+
         System.out.println(
-                "========== BANKGUARD ==========");
+                "========== BANKGUARD v1.2 ==========");
 
         System.out.println("1. Register a new IT risk");
         System.out.println("2. View registered risks");
@@ -168,8 +183,12 @@ public class ConsoleMenu {
         System.out.println("9. Control Assessment Workspace");
         System.out.println("10. Exit");
 
+        // I display the new remediation workspace.
         System.out.println(
-                "================================");
+                "11. Findings & Remediation Workspace");
+
+        System.out.println(
+                "====================================");
     }
 
     // ========================================================
@@ -203,23 +222,24 @@ public class ConsoleMenu {
         try {
 
             System.out.print("Likelihood (1-5): ");
+
             likelihood = Integer.parseInt(
                     input.nextLine().trim());
 
             System.out.print("Impact (1-5): ");
+
             impact = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I display registered employees before
-            // choosing who will own the new risk.
+            // I display employees before choosing an owner.
             viewEmployees();
 
             System.out.print("\nEnter risk owner ID: ");
+
             ownerId = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I let my service validate and save
-            // the selected risk.
+            // I let my service validate and save the risk.
             result = riskService.registerRisk(
                     riskName,
                     riskDescription,
@@ -307,8 +327,7 @@ public class ConsoleMenu {
         } catch (SQLException | IOException e) {
 
             System.out.println(
-                    "Error viewing risks: "
-                    + e.getMessage());
+                    "Error viewing risks: " + e.getMessage());
         }
     }
 
@@ -322,6 +341,7 @@ public class ConsoleMenu {
 
         int riskId;
         int changedBy;
+
         String statusChoice;
         String riskStatus;
         String result;
@@ -353,9 +373,13 @@ public class ConsoleMenu {
             riskStatus = switch (statusChoice) {
 
                 case "1" -> "Open";
+
                 case "2" -> "In Progress";
+
                 case "3" -> "Mitigated";
+
                 case "4" -> "Closed";
+
                 default -> null;
             };
 
@@ -367,8 +391,8 @@ public class ConsoleMenu {
                 return;
             }
 
-            // I display employees so I can select
-            // who is reporting this change.
+            // I display employees to select the person
+            // reporting this risk status change.
             viewEmployees();
 
             System.out.print(
@@ -377,9 +401,8 @@ public class ConsoleMenu {
             changedBy = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I request the change through my service.
-            // My existing service is responsible for
-            // updating the risk and recording its audit.
+            // I let my service update the risk
+            // and preserve the audit history.
             result = riskService.changeRiskStatus(
                     riskId,
                     riskStatus,
@@ -422,7 +445,6 @@ public class ConsoleMenu {
 
         // ========== PROCESSING ==========
 
-        // I let my service validate and save the employee.
         result = employeeService.registerEmployee(
                 name,
                 role
@@ -474,12 +496,10 @@ public class ConsoleMenu {
                         + employee.getEmployeeId());
 
                 System.out.println(
-                        "Name: "
-                        + employee.getName());
+                        "Name: " + employee.getName());
 
                 System.out.println(
-                        "Role: "
-                        + employee.getRole());
+                        "Role: " + employee.getRole());
             }
 
         } catch (SQLException | IOException e) {
@@ -501,12 +521,13 @@ public class ConsoleMenu {
         int riskId;
         int newOwnerId;
         int changedBy;
+
         String result;
 
         // ========== PROCESSING ==========
 
-        // I display risks and employees so I can
-        // select the correct records.
+        // I display risks and employees so the
+        // correct records can be selected.
         viewRisks();
         viewEmployees();
 
@@ -524,7 +545,6 @@ public class ConsoleMenu {
             newOwnerId = Integer.parseInt(
                     input.nextLine().trim());
 
-            // I record the employee reporting the change.
             System.out.print(
                     "Enter acting employee ID: ");
 
@@ -532,8 +552,8 @@ public class ConsoleMenu {
                     input.nextLine().trim());
 
             // I request the ownership transfer.
-            // My risk service handles the database
-            // update and related audit record.
+            // My service handles the database update
+            // and the audit record.
             result = riskService.changeRiskOwner(
                     riskId,
                     newOwnerId,
@@ -595,9 +615,10 @@ public class ConsoleMenu {
 
         // ========== PROCESSING ==========
 
-        // I retrieve audit entries for the selected risk.
-        // I use column metadata so I can display the
-        // values recorded by my existing audit schema.
+        // I retrieve audit entries for this risk.
+        // I use column metadata to display the
+        // fields saved in my existing audit table.
+
         String sql =
                 "SELECT * FROM audit_logs "
                 + "WHERE risk_id = ? "
